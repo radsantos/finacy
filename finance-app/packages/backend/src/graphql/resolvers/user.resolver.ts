@@ -1,5 +1,4 @@
 import { AuthService } from "../../services/auth.service.js";
-import prisma from "../../prisma/client.js";
 
 const authService = new AuthService();
 
@@ -7,9 +6,7 @@ export const userResolvers = {
   Query: {
     me: async (_: any, __: any, context: any) => {
       if (!context.userId) throw new Error("Not authenticated");
-      const user = await prisma.user.findUnique({
-        where: { id: context.userId },
-      });
+      const user = await authService.getUserById(context.userId);
       if (!user) throw new Error("User not found");
       return user;
     },

@@ -1,4 +1,4 @@
-import prisma from "../prisma/client.js";
+import prisma from "../../prisma/client.js";
 import { hashPassword, comparePassword } from "../utils/bcrypt.js";
 import { generateToken } from "../utils/jwt.js";
 
@@ -21,5 +21,9 @@ export class AuthService {
     if (!isValid) throw new Error("Invalid credentials");
     const token = generateToken(user.id);
     return { token, user };
+  }
+
+  async getUserById(userId: string) {
+    return await prisma.user.findUnique({ where: { id: userId } });
   }
 }
