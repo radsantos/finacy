@@ -1,4 +1,4 @@
-import { TransactionService } from "../../services/transaction.service";
+import { TransactionService } from "../../services/transaction.service.js";
 
 const transactionService = new TransactionService();
 
