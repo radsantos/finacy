@@ -11,10 +11,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-import { userResolvers } from "./graphql/resolvers/user.resolver";
-import { categoryResolvers } from "./graphql/resolvers/category.resolver";
-import { transactionResolvers } from "./graphql/resolvers/transaction.resolver";
-import { createContext } from "./graphql/context";
+import { userResolvers } from "./graphql/resolvers/user.resolver.js";
+import { categoryResolvers } from "./graphql/resolvers/category.resolver.js";
+import { transactionResolvers } from "./graphql/resolvers/transaction.resolver.js";
+import { createContext } from "./graphql/context.js";
 
 const userSchema = readFileSync(
   join(process.cwd(), "src/graphql/schemas/user.graphql"),
@@ -81,7 +81,7 @@ async function startServer() {
   const PORT = process.env.PORT || 4000;
 
   httpServer.listen({ port: PORT }, () => {
-    console.log(`🚀 Server ready at http://localhost:${PORT}/graphql`);
+    console.log(`Server ready at http://localhost:${PORT}/graphql`);
   });
 }
 
