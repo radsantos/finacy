@@ -1,7 +1,10 @@
-import { verifyToken } from "../utils/jwt";
+import { verifyToken } from '../utils/jwt.js';
 
 export interface Context {
-  userId?: string;
+  userId?: string;  // ← Mantém para compatibilidade
+  user?: {
+    id: string;
+  };
 }
 
 export const createContext = async ({ req }: any): Promise<Context> => {
@@ -11,11 +14,21 @@ export const createContext = async ({ req }: any): Promise<Context> => {
   if (token) {
     try {
       const { userId } = verifyToken(token);
-      return { userId };
+      
+      console.log("✅ Token válido, userId:", userId); // Log para debug
+
+      return {
+        userId,  // ← Adiciona userId diretamente
+        user: {
+          id: userId,
+        },
+      };
     } catch (error) {
+      console.error("❌ Token inválido:", error);
       return {};
     }
   }
 
+  console.log("⚠️ Nenhum token encontrado");
   return {};
 };

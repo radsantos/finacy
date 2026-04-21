@@ -1,28 +1,47 @@
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
 type Transaction {
   id: ID!
   description: String!
   amount: Float!
-  type: String!
+  type: TransactionType!
   date: String!
   category: Category!
   createdAt: String!
   updatedAt: String!
 }
 
+type Dashboard {
+  balance: Float!
+  incomes: Float!
+  expenses: Float!
+  transactions: [Transaction!]!
+  categories: [CategoryStats!]!
+}
+
+type CategoryStats {
+  name: String!
+  total: Float!
+  count: Int!
+}
+
 input CreateTransactionInput {
   description: String!
   amount: Float!
-  type: String!
+  type: TransactionType!
   date: String!
-  categoryId: String!
+  categoryId: ID!
 }
 
 input UpdateTransactionInput {
   description: String
   amount: Float
-  type: String
+  type: TransactionType
   date: String
-  categoryId: String
+  categoryId: ID
 }
 
 extend type Mutation {
@@ -34,4 +53,5 @@ extend type Mutation {
 extend type Query {
   transactions: [Transaction!]!
   transaction(id: ID!): Transaction
+  dashboard: Dashboard!
 }
