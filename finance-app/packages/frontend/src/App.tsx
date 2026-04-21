@@ -1,19 +1,32 @@
+import { Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "./pages/Login";
 import { RegisterPage } from "./pages/Resgister";
 import { DashboardPage } from "./pages/Dashboard";
+import { ProtectedRoute } from "./routes/ProtectedRoute";
 
 function App() {
-  const path = window.location.pathname;
-  const token = localStorage.getItem("token");
+  return (
+    <Routes>
+      {/* LOGIN */}
+      <Route path="/" element={<LoginPage />} />
 
-  // rota register
-  if (path === "/register") return <RegisterPage />;
+      {/* REGISTER */}
+      <Route path="/register" element={<RegisterPage />} />
 
-  // se estiver logado
-  if (token) return <DashboardPage />;
+      {/* DASHBOARD PROTEGIDO */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
 
-  // se não estiver logado
-  return <LoginPage />;
+      {/* fallback */}
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
 }
 
 export default App;

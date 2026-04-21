@@ -3,20 +3,20 @@ import { prisma } from "../../lib/prisma.js";
 export const dashboardResolvers = {
   Query: {
     dashboard: async (_: any, __: any, context: any) => {
-      if (!context.userId) throw new Error('Not authenticated');
+      if (!context.userId) throw new Error("Not authenticated");
 
       const transactions = await prisma.transaction.findMany({
         where: { userId: context.userId },
         include: { category: true },
-        orderBy: { date: 'desc' }
+        orderBy: { date: "desc" },
       });
 
       let balance = 0;
       let incomes = 0;
       let expenses = 0;
 
-      transactions.forEach(t => {
-        if (t.type === 'INCOME') {
+      transactions.forEach((t) => {
+        if (t.type === "INCOME") {
           incomes += t.amount;
           balance += t.amount;
         } else {
@@ -26,30 +26,34 @@ export const dashboardResolvers = {
       });
 
       const categoryMap = new Map();
-      
+
       for (const t of transactions) {
-        const catName = t.category.name;
-        if (!categoryMap.has(catName)) {
-          categoryMap.set(catName, { total: 0, count: 0 });
+        if (t.type === "EXPENSE") {
+          const catName = t.category.name;
+          if (!categoryMap.has(catName)) {
+            categoryMap.set(catName, { total: 0, count: 0 });
+          }
+          const stats = categoryMap.get(catName);
+          stats.total += t.amount;
+          stats.count += 1;
         }
-        const stats = categoryMap.get(catName);
-        stats.total += t.amount;
-        stats.count += 1;
       }
 
-      const categories = Array.from(categoryMap.entries()).map(([name, stats]) => ({
-        name,
-        total: stats.total,
-        count: stats.count
-      }));
+      const categories = Array.from(categoryMap.entries()).map(
+        ([name, stats]) => ({
+          name,
+          total: stats.total,
+          count: stats.count,
+        }),
+      );
 
       return {
         balance,
         incomes,
         expenses,
         transactions,
-        categories
+        categories,
       };
-    }
-  }
+    },
+  },
 };

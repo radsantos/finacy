@@ -5,37 +5,45 @@ import Logo from "../../assets/Logo.png";
 import { IconEyelashOpen } from "../../components/icons/EyeOpen";
 import { IconEyelashClosed } from "../../components/icons/EyeClosed";
 import AdicionarIcon from "../../assets/adicionar.svg";
+import { useNavigate } from "react-router-dom";
 
 const LoginPage: React.FC = () => {
+  const navigate = useNavigate();
+
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    console.log("EMAIL:", email);
-    console.log("PASSWORD:", password);
+async function handleLogin(e: React.FormEvent) {
+  e.preventDefault();
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const data = await graphqlRequest<{ login: { token: string } }>(
-        LOGIN_MUTATION,
-        { input: { email, password } },
-      );
+    const data = await graphqlRequest<{ login: { token: string } }>(
+      LOGIN_MUTATION,
+      { input: { email, password } }
+    );
 
-      localStorage.setItem("token", data.login.token);
-      window.location.href = "/Dashboard";
-    } catch {
-      alert("E-mail ou senha inválidos");
-    } finally {
-      setLoading(false);
-    }
+    // Salva o token
+    localStorage.setItem("token", data.login.token);
+    
+    // Pequeno delay para garantir que o token foi salvo
+    setTimeout(() => {
+      navigate("/dashboard");
+    }, 100);
+
+  } catch (error: any) {
+    alert(error.message || "E-mail ou senha inválidos");
+  } finally {
+    setLoading(false);
   }
+}
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center px-4 font-[Inter]">
+      
       {/* LOGO */}
       <div className="mb-10">
         <img src={Logo} alt="Financy" className="w-[134px]" />
@@ -43,6 +51,7 @@ const LoginPage: React.FC = () => {
 
       {/* CARD */}
       <div className="w-[448px] bg-white border border-[#E5E7EB] rounded-[12px] shadow-sm p-8 flex flex-col justify-between">
+        
         {/* HEADER */}
         <div className="text-center mb-8">
           <h2 className="text-[20px] font-semibold text-[#111827]">
@@ -55,21 +64,20 @@ const LoginPage: React.FC = () => {
 
         {/* FORM */}
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
+          
           {/* EMAIL */}
           <div>
             <label className="text-[14px] font-medium text-[#374151]">
               E-mail
             </label>
 
-            <div className="relative mt-1">
-              <input
-                type="email"
-                placeholder="mail@exemplo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-[44px] pl-4 pr-4 border border-[#D1D5DB] rounded-[8px] text-[14px] focus:outline-none focus:border-[#1F6343]"
-              />
-            </div>
+            <input
+              type="email"
+              placeholder="mail@exemplo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full h-[44px] mt-1 px-4 border border-[#D1D5DB] rounded-[8px] text-[14px] focus:outline-none focus:border-[#1F6343]"
+            />
           </div>
 
           {/* SENHA */}
@@ -87,7 +95,6 @@ const LoginPage: React.FC = () => {
                 className="w-full h-[44px] pl-4 pr-10 border border-[#D1D5DB] rounded-[8px] text-[14px] focus:outline-none focus:border-[#1F6343]"
               />
 
-              {/* ÍCONE OLHO */}
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -101,13 +108,13 @@ const LoginPage: React.FC = () => {
           {/* AÇÕES */}
           <div className="flex items-center justify-between text-[14px] mt-1">
             <label className="flex items-center gap-2 text-[#4B5563]">
-              <input type="checkbox" className="w-4 h-4 border-[#D1D5DB]" />
+              <input type="checkbox" className="w-4 h-4" />
               Lembrar-me
             </label>
 
-            <a href="#" className="text-[#1F6343] font-medium">
+            <span className="text-[#1F6343] font-medium cursor-pointer">
               Recuperar senha
-            </a>
+            </span>
           </div>
 
           {/* BOTÃO */}
@@ -129,13 +136,15 @@ const LoginPage: React.FC = () => {
 
         {/* FOOTER */}
         <div className="text-center">
-          <p className="text-[14px] text-[#6B7280]">Ainda não tem uma conta?</p>
+          <p className="text-[14px] text-[#6B7280]">
+            Ainda não tem uma conta?
+          </p>
 
           <button
-            onClick={() => (window.location.href = "/register")}
-            className="mt-3 w-full h-[48px] border border-[#D1D5DB] rounded-[12px] text-[#374151] font-semibold hover:bg-gray-50"
+            onClick={() => navigate("/register")} // ✅ CORRETO
+            className="mt-3 w-full h-[48px] border border-[#D1D5DB] rounded-[12px] text-[#374151] font-semibold hover:bg-gray-50 flex items-center justify-center gap-2"
           >
-            <img src={AdicionarIcon} alt="Entrar" className="w-5" />
+            <img src={AdicionarIcon} alt="Criar conta" className="w-5" />
             Criar conta
           </button>
         </div>

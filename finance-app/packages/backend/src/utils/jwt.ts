@@ -1,4 +1,4 @@
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "secret-key-change-in-production";
 
@@ -7,8 +7,6 @@ export const generateToken = (userId: string): string => {
 };
 
 export const verifyToken = (token: string): { userId: string } => {
-  const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload & {
-    userId: string;
-  };
+  const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
   return { userId: decoded.userId };
 };
