@@ -1,14 +1,16 @@
-export async function graphqlRequest<T>(
+export async function graphqlRequest<T = any>(
   query: string,
-  variables?: Record<string, unknown>,
+  variables?: any
 ): Promise<T> {
   const token = localStorage.getItem("token");
+  
+  console.log("Token sendo enviado:", token ? "✅ Tem token" : "❌ Sem token"); // 👈 Log
 
-  const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/graphql`, {
+  const response = await fetch("http://localhost:4000/graphql", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: token ? `Bearer ${token}` : "",
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
     body: JSON.stringify({
       query,
@@ -16,11 +18,13 @@ export async function graphqlRequest<T>(
     }),
   });
 
-  const result = await response.json();
+  const json = await response.json();
+  console.log("Resposta:", json); // 👈 Log
 
-  if (result.errors) {
-    throw new Error(result.errors[0].message);
+  if (json.errors) {
+    console.error("GRAPHQL ERROR:", json.errors);
+    throw new Error(json.errors[0].message);
   }
 
-  return result.data;
+  return json.data;
 }
