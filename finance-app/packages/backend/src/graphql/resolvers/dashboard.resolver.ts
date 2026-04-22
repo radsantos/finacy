@@ -11,11 +11,17 @@ export const dashboardResolvers = {
         orderBy: { date: "desc" },
       });
 
+      // 🔥 CONVERTER AS DATAS PARA ISO STRING 🔥
+      const transactionsWithISO = transactions.map((t) => ({
+        ...t,
+        date: t.date.toISOString(),
+      }));
+
       let balance = 0;
       let incomes = 0;
       let expenses = 0;
 
-      transactions.forEach((t) => {
+      transactionsWithISO.forEach((t) => {
         if (t.type === "INCOME") {
           incomes += t.amount;
           balance += t.amount;
@@ -25,9 +31,10 @@ export const dashboardResolvers = {
         }
       });
 
+      // Calcular estatísticas por categoria
       const categoryMap = new Map();
 
-      for (const t of transactions) {
+      for (const t of transactionsWithISO) {
         if (t.type === "EXPENSE") {
           const catName = t.category.name;
           if (!categoryMap.has(catName)) {
@@ -51,7 +58,7 @@ export const dashboardResolvers = {
         balance,
         incomes,
         expenses,
-        transactions,
+        transactions: transactionsWithISO,
         categories,
       };
     },
