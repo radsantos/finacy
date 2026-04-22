@@ -6,7 +6,17 @@ type Category = {
   name: string;
 };
 
-type NewTransactionModalProps = {
+type Transaction = {
+  id: string;
+  description: string;
+  amount: number;
+  type: "INCOME" | "EXPENSE";
+  category: Category;
+  date: string; // ← apenas string, não string | number
+};
+
+type EditTransactionModalProps = {
+  transaction: Transaction;
   onClose: () => void;
   onSuccess: () => void;
 };
@@ -20,18 +30,9 @@ const GET_CATEGORIES = `
   }
 `;
 
-const CREATE_CATEGORY = `
-  mutation CreateCategory($input: CreateCategoryInput!) {
-    createCategory(input: $input) {
-      id
-      name
-    }
-  }
-`;
-
-const CREATE_TRANSACTION = `
-  mutation CreateTransaction($input: CreateTransactionInput!) {
-    createTransaction(input: $input) {
+const UPDATE_TRANSACTION = `
+  mutation UpdateTransaction($id: ID!, $input: UpdateTransactionInput!) {
+    updateTransaction(id: $id, input: $input) {
       id
       description
       amount
@@ -45,101 +46,50 @@ const CREATE_TRANSACTION = `
   }
 `;
 
-export const NewTransactionModal = ({
+export const EditTransactionModal = ({
+  transaction,
   onClose,
   onSuccess,
-}: NewTransactionModalProps) => {
-  const [type, setType] = useState<"EXPENSE" | "INCOME">("EXPENSE");
-  const [description, setDescription] = useState("");
+}: EditTransactionModalProps) => {
+  const [type, setType] = useState<"EXPENSE" | "INCOME">(transaction.type);
+  const [description, setDescription] = useState(transaction.description);
   const [date, setDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
+    // Garantir que a data seja string
+    if (typeof transaction.date === "string") {
+      return transaction.date.split("T")[0];
+    }
+    return new Date(transaction.date).toISOString().split("T")[0];
   });
-  const [amount, setAmount] = useState("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [amount, setAmount] = useState(() => {
+    return transaction.amount.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  });
+  const [selectedCategoryId, setSelectedCategoryId] = useState(
+    transaction.category.id,
+  );
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
-
-  // Categoria padrão para Receitas
-  const INCOME_CATEGORY_NAME = "Receita";
-  const [incomeCategoryId, setIncomeCategoryId] = useState("");
-
-  // Buscar categorias ao abrir o modal
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      const data = await graphqlRequest<{ categories: Category[] }>(
-        GET_CATEGORIES,
-      );
-      setCategories(data.categories || []);
-
-      // Encontrar ou criar categoria para Receitas
-      const incomeCat = data.categories?.find(
-        (c) => c.name === INCOME_CATEGORY_NAME,
-      );
-      if (incomeCat) {
-        setIncomeCategoryId(incomeCat.id);
-      }
-
-      if (data.categories && data.categories.length > 0) {
-        setSelectedCategoryId(data.categories[0].id);
-      }
-    } catch (error) {
-      console.error("Erro ao carregar categorias:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Criar categoria de Receita se não existir
-  const createIncomeCategory = async () => {
-    try {
-      const data = await graphqlRequest<{ createCategory: Category }>(
-        CREATE_CATEGORY,
-        {
-          input: {
-            name: INCOME_CATEGORY_NAME,
-            description: "Receitas de salário e ganhos",
-          },
-        },
-      );
-      setIncomeCategoryId(data.createCategory.id);
-      await fetchCategories();
-      return data.createCategory.id;
-    } catch (error) {
-      console.error("Erro ao criar categoria de receita:", error);
-      return null;
-    }
-  };
 
   useEffect(() => {
-    const init = async () => {
-      await fetchCategories();
-      // Se for Receita e não tiver a categoria, cria
-      if (type === "INCOME" && !incomeCategoryId) {
-        const newId = await createIncomeCategory();
-        if (newId) setIncomeCategoryId(newId);
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        const data = await graphqlRequest<{ categories: Category[] }>(
+          GET_CATEGORIES,
+        );
+        setCategories(data.categories || []);
+      } catch (error) {
+        console.error("Erro ao carregar categorias:", error);
+      } finally {
+        setLoading(false);
       }
     };
-    init();
+    fetchCategories();
   }, []);
-
-  // Quando mudar o tipo, ajustar a categoria selecionada
-  useEffect(() => {
-    if (type === "INCOME" && incomeCategoryId) {
-      setSelectedCategoryId(incomeCategoryId);
-    } else if (
-      type === "EXPENSE" &&
-      categories.length > 0 &&
-      !selectedCategoryId
-    ) {
-      setSelectedCategoryId(categories[0]?.id || "");
-    }
-  }, [type, incomeCategoryId, categories]);
 
   const formatAmount = (value: string) => {
     const num = parseFloat(value.replace(/[^0-9]/g, "")) / 100;
@@ -154,27 +104,6 @@ export const NewTransactionModal = ({
     const rawValue = e.target.value;
     const formatted = formatAmount(rawValue);
     setAmount(formatted);
-  };
-
-  const handleCreateCategory = async () => {
-    try {
-      setIsCreatingCategory(true);
-      await graphqlRequest<{ createCategory: Category }>(CREATE_CATEGORY, {
-        input: {
-          name: newCategoryName.trim(),
-          description: `Categoria: ${newCategoryName.trim()}`,
-        },
-      });
-
-      await fetchCategories();
-      setNewCategoryName("");
-      setIsCategoryOpen(true);
-    } catch (error) {
-      console.error("Erro ao criar categoria:", error);
-      alert("Erro ao criar categoria. Tente novamente.");
-    } finally {
-      setIsCreatingCategory(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -200,14 +129,11 @@ export const NewTransactionModal = ({
     try {
       setSubmitting(true);
 
-      // Corrigir a data: usar a data selecionada sem conversão de timezone
-      console.log("Data original do input:", date);
       const [year, month, day] = date.split("-");
-      console.log("Ano:", year, "Mês:", month, "Dia:", day);
       const correctedDate = `${year}-${month}-${day}T00:00:00.000Z`;
-      console.log("Data corrigida enviada:", correctedDate);
 
-      await graphqlRequest(CREATE_TRANSACTION, {
+      await graphqlRequest(UPDATE_TRANSACTION, {
+        id: transaction.id,
         input: {
           description: description.trim(),
           amount: amountValue,
@@ -220,21 +146,21 @@ export const NewTransactionModal = ({
       onSuccess();
       onClose();
     } catch (error) {
-      console.error("Erro ao criar transação:", error);
-      alert("Erro ao criar transação. Tente novamente.");
+      console.error("Erro ao atualizar transação:", error);
+      alert("Erro ao atualizar transação. Tente novamente.");
     } finally {
       setSubmitting(false);
     }
   };
+
   const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl w-130 max-w-[90%] shadow-xl">
-        {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <h2 className="text-xl font-semibold text-gray-800">
-            Nova transação
+            Editar transação
           </h2>
           <button
             onClick={onClose}
@@ -244,16 +170,13 @@ export const NewTransactionModal = ({
           </button>
         </div>
 
-        {/* Subtitle */}
         <div className="px-6 pt-2 pb-4">
           <p className="text-sm text-gray-500">
-            Registre sua despesa ou receita
+            Edite os dados da sua transação
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 pt-0 space-y-5">
-          {/* Tipo: Despesa / Receita */}
           <div className="flex gap-4">
             <button
               type="button"
@@ -279,18 +202,13 @@ export const NewTransactionModal = ({
             </button>
           </div>
 
-          {/* Descrição */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Descrição
             </label>
             <input
               type="text"
-              placeholder={
-                type === "INCOME"
-                  ? "Ex. Salário, Freelance"
-                  : "Ex. Almoço no restaurante"
-              }
+              placeholder="Ex. Almoço no restaurante"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1F6343] focus:border-transparent"
@@ -298,76 +216,46 @@ export const NewTransactionModal = ({
             />
           </div>
 
-          {/* Data */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Data
-            </label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1F6343] focus:border-transparent"
-              required
-            />
-          </div>
-
-          {/* Valor */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Valor
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
-                R$
-              </span>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Data
+              </label>
               <input
-                type="text"
-                placeholder="0,00"
-                value={amount}
-                onChange={handleAmountChange}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1F6343] focus:border-transparent"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1F6343] focus:border-transparent"
                 required
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Valor
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                  R$
+                </span>
+                <input
+                  type="text"
+                  placeholder="0,00"
+                  value={amount}
+                  onChange={handleAmountChange}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1F6343] focus:border-transparent"
+                  required
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Categoria - Bloqueada para Receita */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Categoria
             </label>
-            {type === "INCOME" ? (
-              // Quando é Receita, mostra a categoria fixa "Salário" desabilitada
-              <div className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-600">
-                {INCOME_CATEGORY_NAME}
-              </div>
-            ) : loading ? (
+            {loading ? (
               <div className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-400">
                 Carregando categorias...
-              </div>
-            ) : categories.length === 0 ? (
-              <div className="space-y-2">
-                <div className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 text-center">
-                  Nenhuma categoria encontrada.
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Nova categoria (ex: Alimentação)"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1F6343] text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleCreateCategory}
-                    disabled={isCreatingCategory || !newCategoryName.trim()}
-                    className="px-4 py-2 bg-[#1F6343] text-white rounded-xl text-sm hover:bg-[#154d34] disabled:opacity-50"
-                  >
-                    {isCreatingCategory ? "..." : "Criar"}
-                  </button>
-                </div>
               </div>
             ) : (
               <div className="relative">
@@ -425,15 +313,12 @@ export const NewTransactionModal = ({
             )}
           </div>
 
-          {/* Botão Salvar */}
           <button
             type="submit"
-            disabled={
-              submitting || (type === "EXPENSE" && categories.length === 0)
-            }
+            disabled={submitting}
             className="w-full py-3 bg-[#1F6343] text-white font-semibold rounded-xl hover:bg-[#154d34] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
           >
-            {submitting ? "Salvando..." : "Salvar"}
+            {submitting ? "Salvando..." : "Salvar alterações"}
           </button>
         </form>
       </div>

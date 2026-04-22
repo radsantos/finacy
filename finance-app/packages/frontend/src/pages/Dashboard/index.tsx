@@ -48,7 +48,6 @@ const DashboardPage = () => {
   const [user, setUser] = useState<User | null>(null);
   const [monthlyIncome, setMonthlyIncome] = useState(0);
   const [monthlyExpense, setMonthlyExpense] = useState(0);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const getUserInitials = (name: string) => {
     if (!name) return "U";
@@ -61,10 +60,13 @@ const DashboardPage = () => {
 
   const formatDate = (dateString: string | number) => {
     if (!dateString) return "Data não informada";
-
     try {
-      let date: Date;
+      if (typeof dateString === "string" && dateString.includes("T")) {
+        const [year, month, day] = dateString.split("T")[0].split("-");
+        return `${day}/${month}/${year.slice(-2)}`;
+      }
 
+      let date: Date;
       if (typeof dateString === "number") {
         date = new Date(dateString);
       } else if (typeof dateString === "string") {
@@ -77,17 +79,13 @@ const DashboardPage = () => {
         return "Data inválida";
       }
 
-      if (isNaN(date.getTime())) {
-        return "Data inválida";
-      }
+      if (isNaN(date.getTime())) return "Data inválida";
 
       const day = date.getDate().toString().padStart(2, "0");
       const month = (date.getMonth() + 1).toString().padStart(2, "0");
       const year = date.getFullYear().toString().slice(-2);
-
       return `${day}/${month}/${year}`;
-    } catch (error) {
-      console.error("Erro ao formatar data:", error);
+    } catch {
       return "Erro na data";
     }
   };
@@ -100,33 +98,34 @@ const DashboardPage = () => {
     });
   };
 
-  const fetchUser = async () => {
-    try {
-      const data = await graphqlRequest<{ me: User }>(GET_ME);
-      setUser(data.me);
-    } catch (error) {
-      console.error("Erro ao carregar usuário:", error);
-      if (error instanceof Error && error.message === "Not authenticated") {
-        localStorage.removeItem("token");
-        navigate("/");
-      }
-    }
-  };
-
-  const fetchDashboard = async () => {
-    try {
-      const data = await graphqlRequest<{ dashboard: DashboardData }>(
-        GET_DASHBOARD,
-      );
-      setDashboard(data.dashboard);
-      setMonthlyIncome(data.dashboard.incomes || 0);
-      setMonthlyExpense(data.dashboard.expenses || 0);
-    } catch (error) {
-      console.error("Erro ao carregar dashboard:", error);
-    }
-  };
-
   useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const data = await graphqlRequest<{ me: User }>(GET_ME);
+        setUser(data.me);
+      } catch {
+        console.error("Erro ao carregar usuário:");
+        const token = localStorage.getItem("token");
+        if (!token) {
+          localStorage.removeItem("token");
+          navigate("/");
+        }
+      }
+    };
+
+    const fetchDashboard = async () => {
+      try {
+        const data = await graphqlRequest<{ dashboard: DashboardData }>(
+          GET_DASHBOARD,
+        );
+        setDashboard(data.dashboard);
+        setMonthlyIncome(data.dashboard.incomes || 0);
+        setMonthlyExpense(data.dashboard.expenses || 0);
+      } catch {
+        console.error("Erro ao carregar dashboard:");
+      }
+    };
+
     const loadData = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -141,7 +140,7 @@ const DashboardPage = () => {
     };
 
     loadData();
-  }, [refreshKey]);
+  }, [navigate]);
 
   if (loading) {
     return <p className="p-8">Carregando...</p>;
@@ -152,13 +151,28 @@ const DashboardPage = () => {
   return (
     <div className="min-h-screen bg-[#F9FAFB] font-[Inter]">
       {/* HEADER */}
-      <header className="w-full h-[64px] bg-white border-b border-[#E5E7EB] relative flex items-center px-8">
-        <img src={Logo} alt="Financy" className="w-[120px]" />
+      <header className="w-full h-16 bg-white border-b border-[#E5E7EB] relative flex items-center px-8">
+        <img src={Logo} alt="Financy" className="w-30" />
 
         <nav className="absolute left-1/2 -translate-x-1/2 flex gap-6 text-[14px]">
-          <span className="text-[#1F6343] font-semibold">Dashboard</span>
-          <span className="text-[#6B7280] cursor-pointer">Transações</span>
-          <span className="text-[#6B7280] cursor-pointer">Categorias</span>
+          <span
+            className="text-[#1F6343] font-semibold cursor-pointer"
+            onClick={() => navigate("/dashboard")}
+          >
+            Dashboard
+          </span>
+          <span
+            className="text-[#6B7280] cursor-pointer hover:text-[#1F6343]"
+            onClick={() => navigate("/transactions")}
+          >
+            Transações
+          </span>
+          <span
+            className="text-[#6B7280] cursor-pointer hover:text-[#1F6343]"
+            onClick={() => navigate("/categories")}
+          >
+            Categorias
+          </span>
         </nav>
 
         <div className="ml-auto">
@@ -176,7 +190,7 @@ const DashboardPage = () => {
         <div className="grid grid-cols-3 gap-6 mb-8">
           <div className="bg-white p-6 rounded-xl border border-[#E5E7EB]">
             <div className="flex items-center gap-2 mb-2">
-              <img src={wallet} className="w-[20px]" alt="carteira" />
+              <img src={wallet} className="w-5" alt="carteira" />
               <p className="text-sm text-[#6B7280]">SALDO TOTAL</p>
             </div>
             <h2 className="text-2xl font-bold">
@@ -186,7 +200,7 @@ const DashboardPage = () => {
 
           <div className="bg-white p-6 rounded-xl border border-[#E5E7EB]">
             <div className="flex items-center gap-2 mb-2">
-              <img src={receitas} className="w-[20px]" alt="receitas" />
+              <img src={receitas} className="w-5" alt="receitas" />
               <p className="text-sm text-[#6B7280]">RECEITAS DO MÊS</p>
             </div>
             <h2 className="text-2xl font-bold text-green-600">
@@ -196,7 +210,7 @@ const DashboardPage = () => {
 
           <div className="bg-white p-6 rounded-xl border border-[#E5E7EB]">
             <div className="flex items-center gap-2 mb-2">
-              <img src={despesas} className="w-[20px]" alt="despesas" />
+              <img src={despesas} className="w-5" alt="despesas" />
               <p className="text-sm text-[#6B7280]">DESPESAS DO MÊS</p>
             </div>
             <h2 className="text-2xl font-bold text-red-600">
@@ -277,10 +291,10 @@ const DashboardPage = () => {
               )}
             </div>
 
-            <div className="p-4 border-t border-gray-100">
+            <div className="p-4 border-t border-gray-100 flex justify-center">
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="w-full text-center text-[#1F6343] text-sm font-medium py-2 hover:bg-gray-50 rounded-lg transition-colors"
+                className="bg-[#1F6343] text-white text-sm font-medium py-2 px-6 rounded-lg hover:bg-[#154d34] transition-colors cursor-pointer"
               >
                 + Nova transação
               </button>
@@ -315,8 +329,8 @@ const DashboardPage = () => {
         <NewTransactionModal
           onClose={() => setIsModalOpen(false)}
           onSuccess={() => {
-            fetchDashboard();
-            setRefreshKey((prev) => prev + 1);
+            // Recarregar os dados após criar nova transação
+            window.location.reload();
           }}
         />
       )}

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "./pages/Login";
 import { RegisterPage } from "./pages/Resgister";
 import { DashboardPage } from "./pages/Dashboard";
+import { TransactionsPage } from "./pages/Transactions";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 
 function App() {
@@ -19,6 +20,16 @@ function App() {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* TRANSAÇÕES PROTEGIDO */}
+      <Route
+        path="/transactions"
+        element={
+          <ProtectedRoute>
+            <TransactionsPage />
           </ProtectedRoute>
         }
       />
