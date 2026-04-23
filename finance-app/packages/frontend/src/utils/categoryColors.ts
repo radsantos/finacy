@@ -38,6 +38,11 @@ export const categoryColors: Record<
     text: "text-pink-700",
     border: "border-pink-200",
   },
+  Saúde: {
+    bg: "bg-red-100",
+    text: "text-red-700",
+    border: "border-red-200",
+  },
 };
 
 export const getCategoryColor = (categoryName: string) => {

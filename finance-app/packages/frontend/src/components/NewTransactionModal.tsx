@@ -332,17 +332,12 @@ export const NewTransactionModal = ({
             </div>
           </div>
 
-          {/* Categoria - Bloqueada para Receita */}
+          {/* Categoria */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Categoria
             </label>
-            {type === "INCOME" ? (
-              // Quando é Receita, mostra a categoria fixa "Salário" desabilitada
-              <div className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-600">
-                {INCOME_CATEGORY_NAME}
-              </div>
-            ) : loading ? (
+            {loading ? (
               <div className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-400">
                 Carregando categorias...
               </div>

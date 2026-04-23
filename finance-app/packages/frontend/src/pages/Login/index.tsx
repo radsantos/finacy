@@ -1,49 +1,55 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { graphqlRequest } from "../../services/api";
 import { LOGIN_MUTATION } from "../../graphql/mutations/auth";
+import { useToast } from "../../hooks/useToast";
+import { Toast } from "../../components/Toast";
 import Logo from "../../assets/Logo.png";
 import { IconEyelashOpen } from "../../components/icons/EyeOpen";
 import { IconEyelashClosed } from "../../components/icons/EyeClosed";
 import AdicionarIcon from "../../assets/adicionar.svg";
-import { useNavigate } from "react-router-dom";
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const { toast, showToast, hideToast } = useToast();
 
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-async function handleLogin(e: React.FormEvent) {
-  e.preventDefault();
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const data = await graphqlRequest<{ login: { token: string } }>(
-      LOGIN_MUTATION,
-      { input: { email, password } }
-    );
+      const data = await graphqlRequest<{ login: { token: string } }>(
+        LOGIN_MUTATION,
+        { input: { email, password } },
+      );
 
-    // Salva o token
-    localStorage.setItem("token", data.login.token);
-    
-    // Pequeno delay para garantir que o token foi salvo
-    setTimeout(() => {
-      navigate("/dashboard");
-    }, 100);
+      localStorage.setItem("token", data.login.token);
+      showToast("Login realizado com sucesso!", "success");
 
-  } catch (error: any) {
-    alert(error.message || "E-mail ou senha inválidos");
-  } finally {
-    setLoading(false);
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1000);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "E-mail ou senha inválidos";
+      showToast(message, "error");
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center px-4 font-[Inter]">
-      
+      {toast.isOpen && (
+        <Toast message={toast.message} type={toast.type} onClose={hideToast} />
+      )}
+
       {/* LOGO */}
       <div className="mb-10">
         <img src={Logo} alt="Financy" className="w-[134px]" />
@@ -51,7 +57,6 @@ async function handleLogin(e: React.FormEvent) {
 
       {/* CARD */}
       <div className="w-[448px] bg-white border border-[#E5E7EB] rounded-[12px] shadow-sm p-8 flex flex-col justify-between">
-        
         {/* HEADER */}
         <div className="text-center mb-8">
           <h2 className="text-[20px] font-semibold text-[#111827]">
@@ -64,19 +69,18 @@ async function handleLogin(e: React.FormEvent) {
 
         {/* FORM */}
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
-          
           {/* EMAIL */}
           <div>
             <label className="text-[14px] font-medium text-[#374151]">
               E-mail
             </label>
-
             <input
               type="email"
               placeholder="mail@exemplo.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full h-[44px] mt-1 px-4 border border-[#D1D5DB] rounded-[8px] text-[14px] focus:outline-none focus:border-[#1F6343]"
+              required
             />
           </div>
 
@@ -85,7 +89,6 @@ async function handleLogin(e: React.FormEvent) {
             <label className="text-[14px] font-medium text-[#374151]">
               Senha
             </label>
-
             <div className="relative mt-1">
               <input
                 type={showPassword ? "text" : "password"}
@@ -93,8 +96,8 @@ async function handleLogin(e: React.FormEvent) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full h-[44px] pl-4 pr-10 border border-[#D1D5DB] rounded-[8px] text-[14px] focus:outline-none focus:border-[#1F6343]"
+                required
               />
-
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -111,7 +114,6 @@ async function handleLogin(e: React.FormEvent) {
               <input type="checkbox" className="w-4 h-4" />
               Lembrar-me
             </label>
-
             <span className="text-[#1F6343] font-medium cursor-pointer">
               Recuperar senha
             </span>
@@ -121,7 +123,7 @@ async function handleLogin(e: React.FormEvent) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-[48px] bg-[#1F6343] text-white text-[16px] font-semibold rounded-[12px] mt-2 disabled:opacity-50"
+            className="w-full h-[48px] bg-[#1F6343] text-white text-[16px] font-semibold rounded-[12px] mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>
@@ -136,12 +138,9 @@ async function handleLogin(e: React.FormEvent) {
 
         {/* FOOTER */}
         <div className="text-center">
-          <p className="text-[14px] text-[#6B7280]">
-            Ainda não tem uma conta?
-          </p>
-
+          <p className="text-[14px] text-[#6B7280]">Ainda não tem uma conta?</p>
           <button
-            onClick={() => navigate("/register")} // ✅ CORRETO
+            onClick={() => navigate("/register")}
             className="mt-3 w-full h-[48px] border border-[#D1D5DB] rounded-[12px] text-[#374151] font-semibold hover:bg-gray-50 flex items-center justify-center gap-2"
           >
             <img src={AdicionarIcon} alt="Criar conta" className="w-5" />

@@ -15,9 +15,12 @@ export class AuthService {
       { name: "Mercado", description: "Compras de supermercado" },
       { name: "Entretenimento", description: "Cinema, shows, jogos" },
       { name: "Utilidades", description: "Contas de água, luz, internet" },
+      { name: "Salário", description: "Rendimentos do trabalho" },
       { name: "Saúde", description: "Médico, farmácia, exames" },
-      { name: "Educação", description: "Cursos, livros, material escolar" },
-      { name: "Moradia", description: "Aluguel, condomínio, contas" },
+      {
+        name: "Investimento",
+        description: "Aplicações financeiras, ações, fundos",
+      },
     ];
 
     const user = await prisma.user.create({
