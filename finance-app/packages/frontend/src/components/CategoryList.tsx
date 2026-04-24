@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { graphqlRequest } from "../services/api";
-import { getIconByKey, getColorClass } from "../utils/icons";
+import { getIconByKey, getIconBgColor } from "../utils/icons";
 
 type Category = {
   id: string;
@@ -37,10 +37,12 @@ const formatCurrency = (value: number) => {
 export const CategoryList = () => {
   const [categories, setCategories] = useState<CategoryStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchCategoriesWithStats = async () => {
     try {
-      // Buscar categorias com todas as informações
+      setError(null);
+      
       const categoriesQuery = `
         query GetCategories {
           categories {
@@ -53,9 +55,7 @@ export const CategoryList = () => {
         }
       `;
 
-      const categoriesData = await graphqlRequest<{ categories: Category[] }>(
-        categoriesQuery,
-      );
+      const categoriesData = await graphqlRequest<{ categories: Category[] }>(categoriesQuery);
 
       const transactionsQuery = `
         query GetTransactions {
@@ -75,20 +75,11 @@ export const CategoryList = () => {
         transactions: Transaction[];
       }>(transactionsQuery);
 
-      // Mapear categorias com seus dados
       const categoryMap = new Map<
         string,
-        {
-          name: string;
-          description?: string;
-          icon?: string;
-          color?: string;
-          total: number;
-          count: number;
-        }
+        { name: string; description?: string; icon?: string; color?: string; total: number; count: number }
       >();
 
-      // Inicializar com categorias do backend
       categoriesData.categories.forEach((cat) => {
         categoryMap.set(cat.id, {
           name: cat.name,
@@ -100,7 +91,6 @@ export const CategoryList = () => {
         });
       });
 
-      // Somar transações
       transactionsData.transactions.forEach((t) => {
         if (t.type === "EXPENSE") {
           const catId = t.category.id;
@@ -124,14 +114,14 @@ export const CategoryList = () => {
         }),
       );
 
-      // Filtrar apenas categorias com transações e ordenar por total
       const categoriesWithTransactions = categoriesWithStats
         .filter((cat) => cat.count > 0)
         .sort((a, b) => b.total - a.total);
-
+      
       setCategories(categoriesWithTransactions);
     } catch (error) {
       console.error("Erro ao carregar categorias:", error);
+      setError("Não foi possível carregar as categorias. Tente novamente mais tarde.");
     } finally {
       setLoading(false);
     }
@@ -145,6 +135,20 @@ export const CategoryList = () => {
     return (
       <div className="text-center py-8 text-gray-500">
         Carregando categorias...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+        <p className="text-red-600 text-sm">{error}</p>
+        <button
+          onClick={() => fetchCategoriesWithStats()}
+          className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }
@@ -164,17 +168,12 @@ export const CategoryList = () => {
   return (
     <div className="space-y-4">
       {categories.map((cat) => {
-        // Usar a cor salva no banco de dados
-        const colorClass = getColorClass(cat.color || "");
+        const iconBgColor = getIconBgColor(cat.color || "");
         const iconImage = getIconByKey(cat.icon || "");
         return (
           <div key={cat.id} className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-100">
-              <img
-                src={iconImage}
-                className="w-6 h-6 object-contain"
-                alt={cat.name}
-              />
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconBgColor}`}>
+              <img src={iconImage} className="w-8 h-8 object-contain" alt={cat.name} />
             </div>
             <div className="flex-1">
               <div className="flex justify-between items-center">
@@ -187,10 +186,7 @@ export const CategoryList = () => {
                 <span className="text-xs text-gray-400">
                   {cat.count} {cat.count === 1 ? "item" : "itens"}
                 </span>
-                {/* Badge com a cor do banco de dados */}
-                <span
-                  className={`text-xs px-3 py-1 rounded-full ${colorClass}`}
-                >
+                <span className={`text-xs px-3 py-1 rounded-full ${iconBgColor}`}>
                   {cat.name}
                 </span>
               </div>

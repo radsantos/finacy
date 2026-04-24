@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { graphqlRequest } from "../../services/api";
 import { GET_ME } from "../../graphql/queries/user";
-import { getColorClass, getCategoryIcon } from "../../utils/icons";
+import { getIconByKey, getColorClass, getIconBgColor } from "../../utils/icons";
 import { NewCategoryModal } from "../../components/NewCategoryModal";
 import { EditCategoryModal } from "../../components/EditCategoryModal";
 import Logo from "../../assets/Logo.png";
@@ -55,8 +55,7 @@ const CategoriesPage = () => {
     icon?: string;
   } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] =
-    useState<CategoryWithCount | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryWithCount | null>(null);
 
   const getUserInitials = (name: string) => {
     if (!name) return "U";
@@ -176,9 +175,7 @@ const CategoriesPage = () => {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (
-      window.confirm(`Tem certeza que deseja excluir a categoria "${name}"?`)
-    ) {
+    if (window.confirm(`Tem certeza que deseja excluir a categoria "${name}"?`)) {
       try {
         const deleteMutation = `
           mutation DeleteCategory($id: ID!) {
@@ -312,7 +309,7 @@ const CategoriesPage = () => {
             <div className="flex items-center gap-3">
               {mostUsedCategory ? (
                 <img
-                  src={getCategoryIcon(mostUsedCategory.name)}
+                  src={getIconByKey(mostUsedCategory.icon || "")}
                   alt={mostUsedCategory.name}
                   className="w-10 h-10"
                 />
@@ -350,15 +347,17 @@ const CategoriesPage = () => {
           ) : (
             categories.map((cat) => {
               const colorClass = getColorClass(cat.color || "");
+              const iconBgColor = getIconBgColor(cat.color || "");
+              const iconImage = getIconByKey(cat.icon || "");
               return (
                 <div
                   key={cat.id}
                   className="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-start gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-100">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconBgColor}`}>
                       <img
-                        src={getCategoryIcon(cat.name)}
+                        src={iconImage}
                         className="w-8 h-8"
                         alt={cat.name}
                       />

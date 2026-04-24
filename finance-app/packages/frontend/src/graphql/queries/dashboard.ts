@@ -13,6 +13,8 @@ export const GET_DASHBOARD = `
         category {
           id
           name
+          icon
+          color
         }
       }
       categories {

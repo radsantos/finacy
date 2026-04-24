@@ -5,7 +5,7 @@ import { GET_DASHBOARD } from "../../graphql/queries/dashboard";
 import { GET_ME } from "../../graphql/queries/user";
 import { NewTransactionModal } from "../../components/NewTransactionModal";
 import { CategoryList } from "../../components/CategoryList";
-import { getColorClass, getCategoryIcon } from "../../utils/icons";
+import { getIconByKey, getColorClass, getIconBgColor } from "../../utils/icons";
 import Logo from "../../assets/Logo.png";
 import wallet from "../../assets/wallet.png";
 import receitas from "../../assets/receitas.png";
@@ -253,15 +253,16 @@ const DashboardPage = () => {
               ) : (
                 allTransactions.map((item) => {
                   const colorClass = getColorClass(item.category.color || "");
+                  const iconBgColor = getIconBgColor(item.category.color || "");
                   return (
                     <div
                       key={item.id}
                       className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-gray-100">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${iconBgColor}`}>
                           <img
-                            src={getCategoryIcon(item.category.name)}
+                            src={getIconByKey(item.category.icon || "")}
                             className="w-8 h-8"
                             alt={item.category.name}
                           />
