@@ -168,7 +168,11 @@ const DashboardPage = () => {
             Transações
           </span>
           <span
-            className="text-[#6B7280] cursor-pointer hover:text-[#1F6343]"
+            className={`cursor-pointer hover:text-[#1F6343] ${
+              location.pathname === "/categories"
+                ? "text-[#1F6343] font-semibold"
+                : "text-[#6B7280]"
+            }`}
             onClick={() => navigate("/categories")}
           >
             Categorias
