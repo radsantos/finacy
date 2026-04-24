@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { graphqlRequest } from "../../services/api";
 import { GET_ME } from "../../graphql/queries/user";
-import { getCategoryColor } from "../../utils/categoryColors";
-import { getCategoryIcon } from "../../utils/categoryIcons";
+import { getColorClass, getCategoryIcon } from "../../utils/icons";
 import { NewCategoryModal } from "../../components/NewCategoryModal";
 import { EditCategoryModal } from "../../components/EditCategoryModal";
 import Logo from "../../assets/Logo.png";
@@ -16,6 +15,8 @@ type Category = {
   id: string;
   name: string;
   description: string;
+  icon?: string;
+  color?: string;
 };
 
 type Transaction = {
@@ -35,6 +36,8 @@ type CategoryWithCount = {
   id: string;
   name: string;
   description: string;
+  icon?: string;
+  color?: string;
   count: number;
 };
 
@@ -86,6 +89,8 @@ const CategoriesPage = () => {
             id
             name
             description
+            icon
+            color
           }
         }
       `;
@@ -108,7 +113,16 @@ const CategoriesPage = () => {
         transactions: Transaction[];
       }>(transactionsQuery);
 
-      const categoryCount = new Map<string, { name: string; count: number }>();
+      const categoryCount = new Map<
+        string,
+        {
+          name: string;
+          count: number;
+          icon?: string;
+          color?: string;
+          description?: string;
+        }
+      >();
       let totalTrans = 0;
 
       transactionsData.transactions.forEach((t) => {
@@ -129,7 +143,11 @@ const CategoriesPage = () => {
       setTotalCategories(data.categories.length);
 
       const categoriesWithCount = data.categories.map((cat) => ({
-        ...cat,
+        id: cat.id,
+        name: cat.name,
+        description: cat.description,
+        icon: cat.icon,
+        color: cat.color,
         count: categoryCount.get(cat.id)?.count || 0,
       }));
 
@@ -141,10 +159,11 @@ const CategoriesPage = () => {
       categoryCount.forEach((value) => {
         if (value.count > maxCount) {
           maxCount = value.count;
+          const catData = data.categories.find((c) => c.name === value.name);
           mostUsed = {
             name: value.name,
             count: value.count,
-            icon: getCategoryIcon(value.name),
+            icon: catData?.icon,
           };
         }
       });
@@ -255,9 +274,8 @@ const CategoriesPage = () => {
           </button>
         </div>
 
-        {/* CARDS DE ESTATÍSTICAS - ÍCONE À ESQUERDA COM ALINHAMENTO CENTRAL */}
+        {/* CARDS DE ESTATÍSTICAS */}
         <div className="grid grid-cols-3 gap-6 mb-8">
-          {/* Card TOTAL DE CATEGORIAS */}
           <div className="bg-white p-6 rounded-xl border border-[#E5E7EB]">
             <div className="flex items-center gap-3">
               <img src={tagIcon} alt="Categorias" className="w-10 h-10" />
@@ -272,7 +290,6 @@ const CategoriesPage = () => {
             </div>
           </div>
 
-          {/* Card TOTAL DE TRANSAÇÕES */}
           <div className="bg-white p-6 rounded-xl border border-[#E5E7EB]">
             <div className="flex items-center gap-3">
               <img
@@ -291,12 +308,11 @@ const CategoriesPage = () => {
             </div>
           </div>
 
-          {/* Card CATEGORIA MAIS UTILIZADA */}
           <div className="bg-white p-6 rounded-xl border border-[#E5E7EB]">
             <div className="flex items-center gap-3">
               {mostUsedCategory ? (
                 <img
-                  src={mostUsedCategory.icon}
+                  src={getCategoryIcon(mostUsedCategory.name)}
                   alt={mostUsedCategory.name}
                   className="w-10 h-10"
                 />
@@ -324,6 +340,7 @@ const CategoriesPage = () => {
             </div>
           </div>
         </div>
+
         {/* LISTA DE CATEGORIAS EM GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {categories.length === 0 ? (
@@ -332,13 +349,12 @@ const CategoriesPage = () => {
             </p>
           ) : (
             categories.map((cat) => {
-              const colors = getCategoryColor(cat.name);
+              const colorClass = getColorClass(cat.color || "");
               return (
                 <div
                   key={cat.id}
                   className="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:shadow-md transition-shadow"
                 >
-                  {/* Ícone, Nome e Ações na primeira linha */}
                   <div className="flex items-start gap-3 mb-3">
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-100">
                       <img
@@ -385,10 +401,9 @@ const CategoriesPage = () => {
                     </div>
                   </div>
 
-                  {/* Badge e Quantidade */}
                   <div className="flex justify-between items-center pt-3 border-t border-gray-100">
                     <span
-                      className={`text-xs px-3 py-1 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}
+                      className={`text-xs px-3 py-1 rounded-full ${colorClass}`}
                     >
                       {cat.name}
                     </span>

@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { graphqlRequest } from "../../services/api";
 import { GET_ME } from "../../graphql/queries/user";
-import { getCategoryColor } from "../../utils/categoryColors";
-import { getCategoryIcon } from "../../utils/categoryIcons";
+import { getCategoryIcon, getColorClass } from "../../utils/icons";
 import { NewTransactionModal } from "../../components/NewTransactionModal";
 import { EditTransactionModal } from "../../components/EditTransactionModal";
 import Logo from "../../assets/Logo.png";
@@ -14,6 +13,8 @@ import editarIcon from "../../assets/editar.png";
 type Category = {
   id: string;
   name: string;
+  color?: string;
+  icon?: string;
 };
 
 type Transaction = {
@@ -33,6 +34,7 @@ type User = {
 
 const TransactionsPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -182,6 +184,8 @@ const TransactionsPage = () => {
           categories {
             id
             name
+            color
+            icon
           }
         }
       `;
@@ -205,6 +209,8 @@ const TransactionsPage = () => {
             category {
               id
               name
+              color
+              icon
             }
           }
         }
@@ -248,7 +254,6 @@ const TransactionsPage = () => {
       filterCategory === "ALL" || t.category.id === filterCategory;
 
     let matchesDate = true;
-    // Só aplicar filtro de data se tiver mês e ano selecionados
     if (filterMonth && filterYear) {
       const date = parseDate(t.date);
       const transactionMonth = String(date.getMonth() + 1).padStart(2, "0");
@@ -303,11 +308,7 @@ const TransactionsPage = () => {
           </span>
           <span className="text-[#1F6343] font-semibold">Transações</span>
           <span
-            className={`cursor-pointer hover:text-[#1F6343] ${
-              location.pathname === "/categories"
-                ? "text-[#1F6343] font-semibold"
-                : "text-[#6B7280]"
-            }`}
+            className={`cursor-pointer hover:text-[#1F6343] ${location.pathname === "/categories" ? "text-[#1F6343] font-semibold" : "text-[#6B7280]"}`}
             onClick={() => navigate("/categories")}
           >
             Categorias
@@ -472,7 +473,7 @@ const TransactionsPage = () => {
                   </tr>
                 ) : (
                   paginatedTransactions.map((item) => {
-                    const colors = getCategoryColor(item.category.name);
+                    const colorClass = getColorClass(item.category.color || "");
                     return (
                       <tr
                         key={item.id}
@@ -497,7 +498,7 @@ const TransactionsPage = () => {
                         </td>
                         <td className="p-4">
                           <span
-                            className={`text-xs px-3 py-1 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}
+                            className={`text-xs px-3 py-1 rounded-full ${colorClass}`}
                           >
                             {item.category.name}
                           </span>

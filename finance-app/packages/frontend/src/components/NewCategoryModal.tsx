@@ -1,23 +1,6 @@
 import { useState } from "react";
 import { graphqlRequest } from "../services/api";
-
-// Importar imagens PNG
-import alimentacaoIcon from "../assets/categories/alimentacao.png";
-import transporteIcon from "../assets/categories/transporte.png";
-import mercadoIcon from "../assets/categories/mercado.png";
-import investimentoIcon from "../assets/categories/investimento.png";
-import utilidadesIcon from "../assets/categories/utilidades.png";
-import entretenimentoIcon from "../assets/categories/entretenimento.png";
-import saudeIcon from "../assets/categories/saude.png";
-import pagamentoIcon from "../assets/categories/pagamento.png";
-import academiaIcon from "../assets/categories/academia.png";
-import caixapostalIcon from "../assets/categories/caixapostal.png";
-import educacaoIcon from "../assets/categories/educacao.png";
-import notafiscalIcon from "../assets/categories/notafisca.png";
-import petshopIcon from "../assets/categories/petshop.png";
-import presenteIcon from "../assets/categories/presente.png";
-import residenciaIcon from "../assets/categories/residencia.png";
-import viagemIcon from "../assets/categories/viagem.png";
+import { iconOptions, colorOptions } from "../utils/icons";
 
 type NewCategoryModalProps = {
   onClose: () => void;
@@ -30,94 +13,17 @@ const CREATE_CATEGORY = `
       id
       name
       description
+      icon
+      color
     }
   }
 `;
 
-// Opções de ícones com imagens PNG
 type IconOption = {
-  src: string;
+  key: string;
   name: string;
+  src: string;
 };
-
-const iconOptions: IconOption[] = [
-  { src: alimentacaoIcon, name: "Alimentação" },
-  { src: transporteIcon, name: "Transporte" },
-  { src: mercadoIcon, name: "Mercado" },
-  { src: investimentoIcon, name: "Investimento" },
-  { src: utilidadesIcon, name: "Utilidades" },
-  { src: entretenimentoIcon, name: "Entretenimento" },
-  { src: saudeIcon, name: "Saúde" },
-  { src: pagamentoIcon, name: "Pagamento" },
-  { src: academiaIcon, name: "Academia" },
-  { src: caixapostalIcon, name: "Caixa Postal" },
-  { src: educacaoIcon, name: "Educação" },
-  { src: notafiscalIcon, name: "Nota Fiscal" },
-  { src: petshopIcon, name: "Petshop" },
-  { src: presenteIcon, name: "Presente" },
-  { src: residenciaIcon, name: "Residência" },
-  { src: viagemIcon, name: "Viagem" },
-];
-
-// Opções de cores
-const colorOptions = [
-  {
-    name: "Verde",
-    value: "green",
-    bg: "bg-green-100",
-    text: "text-green-700",
-    border: "border-green-200",
-    buttonBg: "bg-green-500",
-  },
-  {
-    name: "Azul",
-    value: "blue",
-    bg: "bg-blue-100",
-    text: "text-blue-700",
-    border: "border-blue-200",
-    buttonBg: "bg-blue-500",
-  },
-  {
-    name: "Roxo",
-    value: "purple",
-    bg: "bg-purple-100",
-    text: "text-purple-700",
-    border: "border-purple-200",
-    buttonBg: "bg-purple-500",
-  },
-  {
-    name: "Rosa",
-    value: "pink",
-    bg: "bg-pink-100",
-    text: "text-pink-700",
-    border: "border-pink-200",
-    buttonBg: "bg-pink-500",
-  },
-  {
-    name: "Vermelho",
-    value: "red",
-    bg: "bg-red-100",
-    text: "text-red-700",
-    border: "border-red-200",
-    buttonBg: "bg-red-500",
-  },
-  {
-    name: "Laranja",
-    value: "orange",
-    bg: "bg-orange-100",
-    text: "text-orange-700",
-    border: "border-orange-200",
-    buttonBg: "bg-orange-500",
-  },
-  {
-    name: "Amarelo",
-    value: "yellow",
-    bg: "bg-yellow-100",
-    text: "text-yellow-700",
-    border: "border-yellow-200",
-    buttonBg: "bg-yellow-500",
-  },
-];
 
 export const NewCategoryModal = ({
   onClose,
@@ -148,6 +54,8 @@ export const NewCategoryModal = ({
         input: {
           name: name.trim(),
           description: description.trim() || undefined,
+          icon: selectedIcon.key,
+          color: selectedColor.value,
         },
       });
       onSuccess();
@@ -162,7 +70,7 @@ export const NewCategoryModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl w-[560px] max-w-[90%] shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl w-140 max-w-[90%] shadow-xl max-h-[90vh] overflow-y-auto">
         {/* Header com ícone de fechar */}
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <div>
@@ -212,7 +120,7 @@ export const NewCategoryModal = ({
             <p className="text-xs text-gray-400 mt-1">Opcional</p>
           </div>
 
-          {/* Ícone - sem cor verde no ícone selecionado */}
+          {/* Ícone */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Ícone
@@ -220,11 +128,11 @@ export const NewCategoryModal = ({
             <div className="grid grid-cols-8 gap-2">
               {iconOptions.map((icon) => (
                 <button
-                  key={icon.name}
+                  key={icon.key}
                   type="button"
                   onClick={() => setSelectedIcon(icon)}
                   className={`w-10 h-10 p-1 flex items-center justify-center rounded-lg transition-all ${
-                    selectedIcon.name === icon.name
+                    selectedIcon.key === icon.key
                       ? "ring-2 ring-[#1F6343] ring-offset-2 bg-gray-100"
                       : "bg-gray-100 hover:bg-gray-200"
                   }`}

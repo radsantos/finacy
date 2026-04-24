@@ -2,6 +2,8 @@ type Category {
   id: ID!
   name: String!
   description: String
+  icon: String
+  color: String
   createdAt: String!
   updatedAt: String!
 }
@@ -9,11 +11,15 @@ type Category {
 input CreateCategoryInput {
   name: String!
   description: String
+  icon: String
+  color: String
 }
 
 input UpdateCategoryInput {
   name: String
   description: String
+  icon: String
+  color: String
 }
 
 extend type Mutation {
