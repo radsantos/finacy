@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { graphqlRequest } from "../../services/api";
 import { GET_DASHBOARD } from "../../graphql/queries/dashboard";
 import { GET_ME } from "../../graphql/queries/user";
 import { NewTransactionModal } from "../../components/NewTransactionModal";
 import { CategoryList } from "../../components/CategoryList";
-import { getCategoryColor } from "../../utils/categoryColors";
-import { getCategoryIcon } from "../../utils/categoryIcons";
+import { getIconByKey, getColorClass, getIconBgColor } from "../../utils/icons";
 import Logo from "../../assets/Logo.png";
 import wallet from "../../assets/wallet.png";
 import receitas from "../../assets/receitas.png";
@@ -16,6 +15,8 @@ import chevron from "../../assets/chevron.png";
 type Category = {
   id: string;
   name: string;
+  color?: string;
+  icon?: string;
 };
 
 type Transaction = {
@@ -42,6 +43,7 @@ type User = {
 
 const DashboardPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -250,16 +252,17 @@ const DashboardPage = () => {
                 </p>
               ) : (
                 allTransactions.map((item) => {
-                  const colors = getCategoryColor(item.category.name);
+                  const colorClass = getColorClass(item.category.color || "");
+                  const iconBgColor = getIconBgColor(item.category.color || "");
                   return (
                     <div
                       key={item.id}
                       className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-gray-100">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${iconBgColor}`}>
                           <img
-                            src={getCategoryIcon(item.category.name)}
+                            src={getIconByKey(item.category.icon || "")}
                             className="w-8 h-8"
                             alt={item.category.name}
                           />
@@ -275,7 +278,7 @@ const DashboardPage = () => {
                       </div>
                       <div className="flex items-center gap-3">
                         <span
-                          className={`text-xs px-3 py-1 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}
+                          className={`text-xs px-3 py-1 rounded-full ${colorClass}`}
                         >
                           {item.category.name}
                         </span>
@@ -333,7 +336,6 @@ const DashboardPage = () => {
         <NewTransactionModal
           onClose={() => setIsModalOpen(false)}
           onSuccess={() => {
-            // Recarregar os dados após criar nova transação
             window.location.reload();
           }}
         />

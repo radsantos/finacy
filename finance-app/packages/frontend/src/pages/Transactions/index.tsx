@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { graphqlRequest } from "../../services/api";
 import { GET_ME } from "../../graphql/queries/user";
-import { getCategoryColor } from "../../utils/categoryColors";
-import { getCategoryIcon } from "../../utils/categoryIcons";
+import { getIconByKey, getIconBgColor } from "../../utils/icons";
 import { NewTransactionModal } from "../../components/NewTransactionModal";
 import { EditTransactionModal } from "../../components/EditTransactionModal";
 import Logo from "../../assets/Logo.png";
@@ -14,6 +13,8 @@ import editarIcon from "../../assets/editar.png";
 type Category = {
   id: string;
   name: string;
+  color?: string;
+  icon?: string;
 };
 
 type Transaction = {
@@ -33,36 +34,24 @@ type User = {
 
 const TransactionsPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<"ALL" | "INCOME" | "EXPENSE">(
-    "ALL",
-  );
+  const [filterType, setFilterType] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
   const [filterCategory, setFilterCategory] = useState<string>("ALL");
   const [filterMonth, setFilterMonth] = useState<string>("");
   const [filterYear, setFilterYear] = useState<string>("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] =
-    useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const itemsPerPage = 10;
 
   const monthNames = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
   ];
 
   const parseDate = (dateValue: string | number): Date => {
@@ -108,8 +97,7 @@ const TransactionsPage = () => {
   const getMonthDisplay = (year: string, month: string) => {
     if (!year || !month) return "Carregando...";
     const monthNum = parseInt(month);
-    if (isNaN(monthNum) || monthNum < 1 || monthNum > 12)
-      return "Selecionar período";
+    if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) return "Selecionar período";
     return `${monthNames[monthNum - 1]} / ${year}`;
   };
 
@@ -117,9 +105,7 @@ const TransactionsPage = () => {
     if (!name) return "U";
     const names = name.trim().split(" ");
     if (names.length === 1) return names[0].charAt(0).toUpperCase();
-    return (
-      names[0].charAt(0) + names[names.length - 1].charAt(0)
-    ).toUpperCase();
+    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
   };
 
   const formatDate = (dateString: string | number) => {
@@ -182,6 +168,8 @@ const TransactionsPage = () => {
           categories {
             id
             name
+            color
+            icon
           }
         }
       `;
@@ -205,6 +193,8 @@ const TransactionsPage = () => {
             category {
               id
               name
+              color
+              icon
             }
           }
         }
@@ -240,21 +230,16 @@ const TransactionsPage = () => {
   }, []);
 
   const filteredTransactions = transactions.filter((t) => {
-    const matchesSearch = t.description
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+    const matchesSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === "ALL" || t.type === filterType;
-    const matchesCategory =
-      filterCategory === "ALL" || t.category.id === filterCategory;
+    const matchesCategory = filterCategory === "ALL" || t.category.id === filterCategory;
 
     let matchesDate = true;
-    // Só aplicar filtro de data se tiver mês e ano selecionados
     if (filterMonth && filterYear) {
       const date = parseDate(t.date);
       const transactionMonth = String(date.getMonth() + 1).padStart(2, "0");
       const transactionYear = String(date.getFullYear());
-      matchesDate =
-        transactionMonth === filterMonth && transactionYear === filterYear;
+      matchesDate = transactionMonth === filterMonth && transactionYear === filterYear;
     }
 
     return matchesSearch && matchesType && matchesCategory && matchesDate;
@@ -295,30 +280,13 @@ const TransactionsPage = () => {
         <img src={Logo} alt="Financy" className="w-30" />
 
         <nav className="absolute left-1/2 -translate-x-1/2 flex gap-6 text-[14px]">
-          <span
-            className="text-[#6B7280] cursor-pointer hover:text-[#1F6343]"
-            onClick={() => navigate("/dashboard")}
-          >
-            Dashboard
-          </span>
+          <span className="text-[#6B7280] cursor-pointer hover:text-[#1F6343]" onClick={() => navigate("/dashboard")}>Dashboard</span>
           <span className="text-[#1F6343] font-semibold">Transações</span>
-          <span
-            className={`cursor-pointer hover:text-[#1F6343] ${
-              location.pathname === "/categories"
-                ? "text-[#1F6343] font-semibold"
-                : "text-[#6B7280]"
-            }`}
-            onClick={() => navigate("/categories")}
-          >
-            Categorias
-          </span>
+          <span className={`cursor-pointer hover:text-[#1F6343] ${location.pathname === "/categories" ? "text-[#1F6343] font-semibold" : "text-[#6B7280]"}`} onClick={() => navigate("/categories")}>Categorias</span>
         </nav>
 
         <div className="ml-auto">
-          <div
-            className="w-10 h-10 rounded-full bg-[#1F6343] flex items-center justify-center font-semibold text-white cursor-pointer hover:bg-[#154d34] transition-colors"
-            title={user?.name || "Usuário"}
-          >
+          <div className="w-10 h-10 rounded-full bg-[#1F6343] flex items-center justify-center font-semibold text-white cursor-pointer hover:bg-[#154d34] transition-colors" title={user?.name || "Usuário"}>
             {user ? getUserInitials(user.name) : "U"}
           </div>
         </div>
@@ -327,48 +295,23 @@ const TransactionsPage = () => {
       <main className="p-8">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-800">Transações</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Gerencie todas as suas transações financeiras
-          </p>
+          <p className="text-sm text-gray-500 mt-1">Gerencie todas as suas transações financeiras</p>
         </div>
 
         <div className="bg-white rounded-xl border border-[#E5E7EB] py-5 px-6 mb-6">
           <div className="flex flex-wrap gap-4 items-end">
+            {/* Buscar, Tipo, Categoria, Período e Botão */}
             <div className="flex-1 min-w-50">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Buscar
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
               <div className="relative">
-                <img
-                  src={searchIcon}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-                  alt="buscar"
-                />
-                <input
-                  type="text"
-                  placeholder="Buscar por descrição"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F6343]"
-                />
+                <img src={searchIcon} className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" alt="buscar" />
+                <input type="text" placeholder="Buscar por descrição" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F6343]" />
               </div>
             </div>
 
             <div className="w-32">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tipo
-              </label>
-              <select
-                value={filterType}
-                onChange={(e) => {
-                  setFilterType(e.target.value as "ALL" | "INCOME" | "EXPENSE");
-                  setCurrentPage(1);
-                }}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F6343]"
-              >
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+              <select value={filterType} onChange={(e) => { setFilterType(e.target.value as "ALL" | "INCOME" | "EXPENSE"); setCurrentPage(1); }} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F6343]">
                 <option value="ALL">Todos</option>
                 <option value="INCOME">Receitas</option>
                 <option value="EXPENSE">Despesas</option>
@@ -376,65 +319,22 @@ const TransactionsPage = () => {
             </div>
 
             <div className="w-36">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Categoria
-              </label>
-              <select
-                value={filterCategory}
-                onChange={(e) => {
-                  setFilterCategory(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F6343]"
-              >
+              <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+              <select value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setCurrentPage(1); }} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F6343]">
                 <option value="ALL">Todas</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
+                {categories.map((cat) => (<option key={cat.id} value={cat.id}>{cat.name}</option>))}
               </select>
             </div>
 
             <div className="w-44">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Período
-              </label>
-              <select
-                value={
-                  filterMonth && filterYear
-                    ? `${filterYear}-${filterMonth}`
-                    : ""
-                }
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value && value.includes("-")) {
-                    const [year, month] = value.split("-");
-                    setFilterYear(year);
-                    setFilterMonth(month);
-                  } else {
-                    setFilterYear("");
-                    setFilterMonth("");
-                  }
-                  setCurrentPage(1);
-                }}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F6343]"
-              >
+              <label className="block text-sm font-medium text-gray-700 mb-1">Período</label>
+              <select value={filterMonth && filterYear ? `${filterYear}-${filterMonth}` : ""} onChange={(e) => { const value = e.target.value; if (value && value.includes("-")) { const [year, month] = value.split("-"); setFilterYear(year); setFilterMonth(month); } else { setFilterYear(""); setFilterMonth(""); } setCurrentPage(1); }} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F6343]">
                 <option value="">Todos os períodos</option>
-                {availableMonths.map(({ key, year, month }) => (
-                  <option key={key} value={key}>
-                    {getMonthDisplay(year, month)}
-                  </option>
-                ))}
+                {availableMonths.map(({ key, year, month }) => (<option key={key} value={key}>{getMonthDisplay(year, month)}</option>))}
               </select>
             </div>
 
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 bg-[#1F6343] text-white rounded-lg hover:bg-[#154d34] transition-colors cursor-pointer"
-            >
-              + Nova transação
-            </button>
+            <button onClick={() => setIsModalOpen(true)} className="px-4 py-2 bg-[#1F6343] text-white rounded-lg hover:bg-[#154d34] transition-colors cursor-pointer">+ Nova transação</button>
           </div>
         </div>
 
@@ -443,24 +343,12 @@ const TransactionsPage = () => {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left p-4 text-sm font-semibold text-gray-600">
-                    DESCRIÇÃO
-                  </th>
-                  <th className="text-left p-4 text-sm font-semibold text-gray-600">
-                    DATA
-                  </th>
-                  <th className="text-left p-4 text-sm font-semibold text-gray-600">
-                    CATEGORIA
-                  </th>
-                  <th className="text-left p-4 text-sm font-semibold text-gray-600">
-                    TIPO
-                  </th>
-                  <th className="text-right p-4 text-sm font-semibold text-gray-600">
-                    VALOR
-                  </th>
-                  <th className="text-center p-4 text-sm font-semibold text-gray-600">
-                    AÇÕES
-                  </th>
+                  <th className="text-left p-4 text-sm font-semibold text-gray-600">DESCRIÇÃO</th>
+                  <th className="text-left p-4 text-sm font-semibold text-gray-600">DATA</th>
+                  <th className="text-left p-4 text-sm font-semibold text-gray-600">CATEGORIA</th>
+                  <th className="text-left p-4 text-sm font-semibold text-gray-600">TIPO</th>
+                  <th className="text-right p-4 text-sm font-semibold text-gray-600">VALOR</th>
+                  <th className="text-center p-4 text-sm font-semibold text-gray-600">AÇÕES</th>
                 </tr>
               </thead>
               <tbody>
@@ -472,74 +360,41 @@ const TransactionsPage = () => {
                   </tr>
                 ) : (
                   paginatedTransactions.map((item) => {
-                    const colors = getCategoryColor(item.category.name);
+                    const bgColor = getIconBgColor(item.category.color || "");
+                    const iconImage = getIconByKey(item.category.icon || "");
                     return (
-                      <tr
-                        key={item.id}
-                        className="border-b border-gray-100 hover:bg-gray-50"
-                      >
+                      <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-gray-100">
-                              <img
-                                src={getCategoryIcon(item.category.name)}
-                                className="w-8 h-8"
-                                alt={item.category.name}
-                              />
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${bgColor}`}>
+                              <img src={iconImage} className="w-5 h-5 object-contain" alt={item.category.name} />
                             </div>
-                            <span className="text-sm text-gray-800">
-                              {item.description}
-                            </span>
+                            <span className="text-sm text-gray-800">{item.description}</span>
                           </div>
                         </td>
-                        <td className="p-4 text-sm text-gray-500">
-                          {formatDate(item.date)}
-                        </td>
+                        <td className="p-4 text-sm text-gray-500">{formatDate(item.date)}</td>
                         <td className="p-4">
-                          <span
-                            className={`text-xs px-3 py-1 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}
-                          >
+                          <span className={`text-xs px-3 py-1 rounded-full ${bgColor}`}>
                             {item.category.name}
                           </span>
                         </td>
                         <td className="p-4">
-                          <span
-                            className={`text-xs px-3 py-1 rounded-full ${item.type === "INCOME" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-                          >
+                          <span className={`text-xs px-3 py-1 rounded-full ${item.type === "INCOME" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                             {item.type === "INCOME" ? "Entrada" : "Saída"}
                           </span>
                         </td>
                         <td className="p-4 text-right">
-                          <span
-                            className={`text-sm font-semibold ${item.type === "INCOME" ? "text-green-600" : "text-red-600"}`}
-                          >
-                            {item.type === "INCOME" ? "+ " : "- "} R${" "}
-                            {formatCurrency(item.amount)}
+                          <span className={`text-sm font-semibold ${item.type === "INCOME" ? "text-green-600" : "text-red-600"}`}>
+                            {item.type === "INCOME" ? "+ " : "- "} R$ {formatCurrency(item.amount)}
                           </span>
                         </td>
                         <td className="p-4 text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleDelete(item.id)}
-                              className="p-1 hover:bg-gray-100 rounded transition-colors"
-                              title="Excluir"
-                            >
-                              <img
-                                src={deleteIcon}
-                                className="w-4 h-4"
-                                alt="excluir"
-                              />
+                            <button onClick={() => handleDelete(item.id)} className="p-1 hover:bg-gray-100 rounded transition-colors" title="Excluir">
+                              <img src={deleteIcon} className="w-4 h-4" alt="excluir" />
                             </button>
-                            <button
-                              onClick={() => setEditingTransaction(item)}
-                              className="p-1 hover:bg-gray-100 rounded transition-colors"
-                              title="Editar"
-                            >
-                              <img
-                                src={editarIcon}
-                                className="w-5 h-5"
-                                alt="editar"
-                              />
+                            <button onClick={() => setEditingTransaction(item)} className="p-1 hover:bg-gray-100 rounded transition-colors" title="Editar">
+                              <img src={editarIcon} className="w-5 h-5" alt="editar" />
                             </button>
                           </div>
                         </td>
@@ -553,29 +408,11 @@ const TransactionsPage = () => {
 
           {totalPages > 1 && (
             <div className="flex justify-between items-center p-4 border-t border-gray-200">
-              <p className="text-sm text-gray-500">
-                {filteredTransactions.length} resultados
-              </p>
+              <p className="text-sm text-gray-500">{filteredTransactions.length} resultados</p>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50"
-                >
-                  Anterior
-                </button>
-                <span className="px-3 py-1 text-sm text-gray-600">
-                  {currentPage} de {totalPages}
-                </span>
-                <button
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50"
-                >
-                  Próxima
-                </button>
+                <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50">Anterior</button>
+                <span className="px-3 py-1 text-sm text-gray-600">{currentPage} de {totalPages}</span>
+                <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50">Próxima</button>
               </div>
             </div>
           )}

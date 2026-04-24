@@ -61,8 +61,6 @@ export const NewTransactionModal = ({
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
 
   // Categoria padrão para Receitas
   const INCOME_CATEGORY_NAME = "Receita";
@@ -87,6 +85,8 @@ export const NewTransactionModal = ({
 
       if (data.categories && data.categories.length > 0) {
         setSelectedCategoryId(data.categories[0].id);
+      } else {
+        setSelectedCategoryId(""); // Se não há categorias, limpa seleção
       }
     } catch (error) {
       console.error("Erro ao carregar categorias:", error);
@@ -132,12 +132,10 @@ export const NewTransactionModal = ({
   useEffect(() => {
     if (type === "INCOME" && incomeCategoryId) {
       setSelectedCategoryId(incomeCategoryId);
-    } else if (
-      type === "EXPENSE" &&
-      categories.length > 0 &&
-      !selectedCategoryId
-    ) {
+    } else if (type === "EXPENSE" && categories.length > 0) {
       setSelectedCategoryId(categories[0]?.id || "");
+    } else if (type === "EXPENSE" && categories.length === 0) {
+      setSelectedCategoryId(""); // Sem categoria quando não há categorias
     }
   }, [type, incomeCategoryId, categories]);
 
@@ -156,27 +154,6 @@ export const NewTransactionModal = ({
     setAmount(formatted);
   };
 
-  const handleCreateCategory = async () => {
-    try {
-      setIsCreatingCategory(true);
-      await graphqlRequest<{ createCategory: Category }>(CREATE_CATEGORY, {
-        input: {
-          name: newCategoryName.trim(),
-          description: `Categoria: ${newCategoryName.trim()}`,
-        },
-      });
-
-      await fetchCategories();
-      setNewCategoryName("");
-      setIsCategoryOpen(true);
-    } catch (error) {
-      console.error("Erro ao criar categoria:", error);
-      alert("Erro ao criar categoria. Tente novamente.");
-    } finally {
-      setIsCreatingCategory(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -185,9 +162,12 @@ export const NewTransactionModal = ({
       return;
     }
 
-    if (!selectedCategoryId) {
-      alert("Por favor, selecione uma categoria");
-      return;
+    // Permite salvar SEM categoria (apenas avisa se for despesa e não tiver categoria)
+    if (type === "EXPENSE" && !selectedCategoryId && categories.length > 0) {
+      const confirmSave = window.confirm(
+        "Você não selecionou uma categoria. Deseja salvar mesmo assim?"
+      );
+      if (!confirmSave) return;
     }
 
     const amountValue = parseFloat(amount.replace(/\./g, "").replace(",", "."));
@@ -201,11 +181,8 @@ export const NewTransactionModal = ({
       setSubmitting(true);
 
       // Corrigir a data: usar a data selecionada sem conversão de timezone
-      console.log("Data original do input:", date);
       const [year, month, day] = date.split("-");
-      console.log("Ano:", year, "Mês:", month, "Dia:", day);
       const correctedDate = `${year}-${month}-${day}T00:00:00.000Z`;
-      console.log("Data corrigida enviada:", correctedDate);
 
       await graphqlRequest(CREATE_TRANSACTION, {
         input: {
@@ -213,19 +190,19 @@ export const NewTransactionModal = ({
           amount: amountValue,
           type,
           date: correctedDate,
-          categoryId: selectedCategoryId,
+          categoryId: selectedCategoryId || null, // Permite null
         },
       });
 
       onSuccess();
       onClose();
     } catch (error) {
-      console.error("Erro ao criar transação:", error);
       alert("Erro ao criar transação. Tente novamente.");
     } finally {
       setSubmitting(false);
     }
   };
+
   const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
 
   return (
@@ -332,100 +309,83 @@ export const NewTransactionModal = ({
             </div>
           </div>
 
-          {/* Categoria */}
+          {/* Categoria - CORRIGIDO (sem botão de criar) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Categoria
             </label>
-            {loading ? (
-              <div className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-400">
-                Carregando categorias...
-              </div>
-            ) : categories.length === 0 ? (
-              <div className="space-y-2">
-                <div className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 text-center">
-                  Nenhuma categoria encontrada.
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Nova categoria (ex: Alimentação)"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1F6343] text-sm"
-                  />
+            {(() => {
+              if (loading) {
+                return (
+                  <div className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-400">
+                    Carregando categorias...
+                  </div>
+                );
+              }
+              
+              if (categories.length === 0) {
+                return (
+                  <div className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 text-center">
+                    Nenhuma categoria encontrada.
+                  </div>
+                );
+              }
+              
+              return (
+                <div className="relative">
                   <button
                     type="button"
-                    onClick={handleCreateCategory}
-                    disabled={isCreatingCategory || !newCategoryName.trim()}
-                    className="px-4 py-2 bg-[#1F6343] text-white rounded-xl text-sm hover:bg-[#154d34] disabled:opacity-50"
+                    onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white text-left flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-[#1F6343]"
                   >
-                    {isCreatingCategory ? "..." : "Criar"}
+                    <span className={selectedCategory ? "text-gray-800" : "text-gray-400"}>
+                      {selectedCategory ? selectedCategory.name : "Selecione uma categoria"}
+                    </span>
+                    <svg
+                      className={`w-4 h-4 text-gray-400 transition-transform ${isCategoryOpen ? "rotate-180" : ""}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
                   </button>
-                </div>
-              </div>
-            ) : (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white text-left flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-[#1F6343]"
-                >
-                  <span
-                    className={
-                      selectedCategory ? "text-gray-800" : "text-gray-400"
-                    }
-                  >
-                    {selectedCategory
-                      ? selectedCategory.name
-                      : "Selecione uma categoria"}
-                  </span>
-                  <svg
-                    className={`w-4 h-4 text-gray-400 transition-transform ${isCategoryOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
 
-                {isCategoryOpen && (
-                  <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                    {categories.map((cat) => (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedCategoryId(cat.id);
-                          setIsCategoryOpen(false);
-                        }}
-                        className={`w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors ${
-                          selectedCategoryId === cat.id
-                            ? "bg-green-50 text-[#1F6343]"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        {cat.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                  {isCategoryOpen && (
+                    <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                      {categories.map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCategoryId(cat.id);
+                            setIsCategoryOpen(false);
+                          }}
+                          className={`w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors ${
+                            selectedCategoryId === cat.id
+                              ? "bg-green-50 text-[#1F6343]"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
-          {/* Botão Salvar */}
+          {/* Botão Salvar - agora permite salvar mesmo sem categorias */}
           <button
             type="submit"
-            disabled={
-              submitting || (type === "EXPENSE" && categories.length === 0)
-            }
+            disabled={submitting}
             className="w-full py-3 bg-[#1F6343] text-white font-semibold rounded-xl hover:bg-[#154d34] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
           >
             {submitting ? "Salvando..." : "Salvar"}

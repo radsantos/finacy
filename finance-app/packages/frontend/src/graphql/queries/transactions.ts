@@ -1,6 +1,6 @@
-export const CREATE_TRANSACTION = `
-  mutation CreateTransaction($input: CreateTransactionInput!) {
-    createTransaction(input: $input) {
+export const GET_TRANSACTIONS = `
+  query GetTransactions {
+    transactions {
       id
       description
       amount
@@ -9,6 +9,8 @@ export const CREATE_TRANSACTION = `
       category {
         id
         name
+        icon
+        color
       }
     }
   }

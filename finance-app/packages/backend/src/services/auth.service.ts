@@ -9,33 +9,16 @@ export class AuthService {
 
     const passwordHash = await hashPassword(password);
 
-    const defaultCategories = [
-      { name: "Alimentação", description: "Gastos com comida e mercado" },
-      { name: "Transporte", description: "Uber, ônibus, metrô, gasolina" },
-      { name: "Mercado", description: "Compras de supermercado" },
-      { name: "Entretenimento", description: "Cinema, shows, jogos" },
-      { name: "Utilidades", description: "Contas de água, luz, internet" },
-      { name: "Salário", description: "Rendimentos do trabalho" },
-      { name: "Saúde", description: "Médico, farmácia, exames" },
-      {
-        name: "Investimento",
-        description: "Aplicações financeiras, ações, fundos",
-      },
-    ];
-
+    // Criar apenas o usuário, SEM categorias automáticas
     const user = await prisma.user.create({
       data: {
         email,
         passwordHash,
         name,
-        categories: {
-          create: defaultCategories,
-        },
-      },
-      include: {
-        categories: true,
       },
     });
+
+    console.log(`✅ Usuário criado: ${user.email}`);
 
     const token = generateToken(user.id);
     return { token, user };
