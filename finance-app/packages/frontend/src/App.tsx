@@ -3,6 +3,7 @@ import { LoginPage } from "./pages/Login";
 import { RegisterPage } from "./pages/Resgister";
 import { DashboardPage } from "./pages/Dashboard";
 import { TransactionsPage } from "./pages/Transactions";
+import { CategoriesPage } from "./pages/Categories";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 
 function App() {
@@ -30,6 +31,16 @@ function App() {
         element={
           <ProtectedRoute>
             <TransactionsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* CATEGORIAS PROTEGIDO */}
+      <Route
+        path="/categories"
+        element={
+          <ProtectedRoute>
+            <CategoriesPage />
           </ProtectedRoute>
         }
       />
