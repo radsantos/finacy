@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { graphqlRequest } from "../services/api";
+import { useToast } from "../hooks/useToast";
 
 type Category = {
   id: string;
@@ -49,6 +50,7 @@ export const NewTransactionModal = ({
   onClose,
   onSuccess,
 }: NewTransactionModalProps) => {
+  const { showToast } = useToast();
   const [type, setType] = useState<"EXPENSE" | "INCOME">("EXPENSE");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(() => {
@@ -67,7 +69,7 @@ export const NewTransactionModal = ({
   const [incomeCategoryId, setIncomeCategoryId] = useState("");
 
   // Buscar categorias ao abrir o modal
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       const data = await graphqlRequest<{ categories: Category[] }>(
@@ -75,7 +77,6 @@ export const NewTransactionModal = ({
       );
       setCategories(data.categories || []);
 
-      // Encontrar ou criar categoria para Receitas
       const incomeCat = data.categories?.find(
         (c) => c.name === INCOME_CATEGORY_NAME,
       );
@@ -86,17 +87,18 @@ export const NewTransactionModal = ({
       if (data.categories && data.categories.length > 0) {
         setSelectedCategoryId(data.categories[0].id);
       } else {
-        setSelectedCategoryId(""); // Se não há categorias, limpa seleção
+        setSelectedCategoryId("");
       }
     } catch (error) {
       console.error("Erro ao carregar categorias:", error);
+      showToast("Erro ao carregar categorias", "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
   // Criar categoria de Receita se não existir
-  const createIncomeCategory = async () => {
+  const createIncomeCategory = useCallback(async () => {
     try {
       const data = await graphqlRequest<{ createCategory: Category }>(
         CREATE_CATEGORY,
@@ -112,21 +114,28 @@ export const NewTransactionModal = ({
       return data.createCategory.id;
     } catch (error) {
       console.error("Erro ao criar categoria de receita:", error);
+      showToast("Erro ao criar categoria padrão", "error");
       return null;
     }
-  };
+  }, [fetchCategories, showToast]);
 
+  // Inicialização do modal
   useEffect(() => {
     const init = async () => {
       await fetchCategories();
-      // Se for Receita e não tiver a categoria, cria
-      if (type === "INCOME" && !incomeCategoryId) {
-        const newId = await createIncomeCategory();
-        if (newId) setIncomeCategoryId(newId);
-      }
     };
     init();
-  }, []);
+  }, [fetchCategories]); // Adicionado fetchCategories como dependência
+
+  // Criar categoria de receita quando necessário
+  useEffect(() => {
+    const initIncomeCategory = async () => {
+      if (type === "INCOME" && !incomeCategoryId) {
+        await createIncomeCategory();
+      }
+    };
+    initIncomeCategory();
+  }, [type, incomeCategoryId, createIncomeCategory]); // Adicionadas dependências corretas
 
   // Quando mudar o tipo, ajustar a categoria selecionada
   useEffect(() => {
@@ -135,7 +144,7 @@ export const NewTransactionModal = ({
     } else if (type === "EXPENSE" && categories.length > 0) {
       setSelectedCategoryId(categories[0]?.id || "");
     } else if (type === "EXPENSE" && categories.length === 0) {
-      setSelectedCategoryId(""); // Sem categoria quando não há categorias
+      setSelectedCategoryId("");
     }
   }, [type, incomeCategoryId, categories]);
 
@@ -158,14 +167,13 @@ export const NewTransactionModal = ({
     e.preventDefault();
 
     if (!description.trim()) {
-      alert("Por favor, preencha a descrição");
+      showToast("Por favor, preencha a descrição", "error");
       return;
     }
 
-    // Permite salvar SEM categoria (apenas avisa se for despesa e não tiver categoria)
     if (type === "EXPENSE" && !selectedCategoryId && categories.length > 0) {
       const confirmSave = window.confirm(
-        "Você não selecionou uma categoria. Deseja salvar mesmo assim?"
+        "Você não selecionou uma categoria. Deseja salvar mesmo assim?",
       );
       if (!confirmSave) return;
     }
@@ -173,14 +181,13 @@ export const NewTransactionModal = ({
     const amountValue = parseFloat(amount.replace(/\./g, "").replace(",", "."));
 
     if (isNaN(amountValue) || amountValue <= 0) {
-      alert("Por favor, insira um valor válido");
+      showToast("Por favor, insira um valor válido", "error");
       return;
     }
 
     try {
       setSubmitting(true);
 
-      // Corrigir a data: usar a data selecionada sem conversão de timezone
       const [year, month, day] = date.split("-");
       const correctedDate = `${year}-${month}-${day}T00:00:00.000Z`;
 
@@ -190,14 +197,21 @@ export const NewTransactionModal = ({
           amount: amountValue,
           type,
           date: correctedDate,
-          categoryId: selectedCategoryId || null, // Permite null
+          categoryId: selectedCategoryId || null,
         },
       });
 
+      showToast(
+        type === "EXPENSE"
+          ? "Despesa criada com sucesso! 🎉"
+          : "Receita criada com sucesso! 🎉",
+        "success",
+      );
       onSuccess();
       onClose();
     } catch (error) {
-      alert("Erro ao criar transação. Tente novamente.");
+      console.error("Erro ao criar transação:", error);
+      showToast("Erro ao criar transação. Tente novamente.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -309,7 +323,7 @@ export const NewTransactionModal = ({
             </div>
           </div>
 
-          {/* Categoria - CORRIGIDO (sem botão de criar) */}
+          {/* Categoria */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Categoria
@@ -322,7 +336,7 @@ export const NewTransactionModal = ({
                   </div>
                 );
               }
-              
+
               if (categories.length === 0) {
                 return (
                   <div className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 text-center">
@@ -330,7 +344,7 @@ export const NewTransactionModal = ({
                   </div>
                 );
               }
-              
+
               return (
                 <div className="relative">
                   <button
@@ -338,8 +352,14 @@ export const NewTransactionModal = ({
                     onClick={() => setIsCategoryOpen(!isCategoryOpen)}
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white text-left flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-[#1F6343]"
                   >
-                    <span className={selectedCategory ? "text-gray-800" : "text-gray-400"}>
-                      {selectedCategory ? selectedCategory.name : "Selecione uma categoria"}
+                    <span
+                      className={
+                        selectedCategory ? "text-gray-800" : "text-gray-400"
+                      }
+                    >
+                      {selectedCategory
+                        ? selectedCategory.name
+                        : "Selecione uma categoria"}
                     </span>
                     <svg
                       className={`w-4 h-4 text-gray-400 transition-transform ${isCategoryOpen ? "rotate-180" : ""}`}
@@ -365,6 +385,10 @@ export const NewTransactionModal = ({
                           onClick={() => {
                             setSelectedCategoryId(cat.id);
                             setIsCategoryOpen(false);
+                            showToast(
+                              `Categoria "${cat.name}" selecionada`,
+                              "info",
+                            );
                           }}
                           className={`w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors ${
                             selectedCategoryId === cat.id
@@ -382,13 +406,35 @@ export const NewTransactionModal = ({
             })()}
           </div>
 
-          {/* Botão Salvar - agora permite salvar mesmo sem categorias */}
+          {/* Botão Salvar */}
           <button
             type="submit"
             disabled={submitting}
             className="w-full py-3 bg-[#1F6343] text-white font-semibold rounded-xl hover:bg-[#154d34] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
           >
-            {submitting ? "Salvando..." : "Salvar"}
+            {submitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                Salvando...
+              </span>
+            ) : (
+              "Salvar transação"
+            )}
           </button>
         </form>
       </div>
