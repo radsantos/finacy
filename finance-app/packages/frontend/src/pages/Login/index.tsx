@@ -95,7 +95,7 @@ const LoginPage: React.FC = () => {
                 placeholder="Digite sua senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-[44px] pl-4 pr-10 border border-[#D1D5DB] rounded-[8px] text-[14px] focus:outline-none focus:border-[#1F6343]"
+                className="w-full h-11 pl-4 pr-10 border border-[#D1D5DB] rounded-lg text-[14px] focus:outline-none focus:border-[#1F6343]"
                 required
               />
               <button
@@ -123,7 +123,7 @@ const LoginPage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-[48px] bg-[#1F6343] text-white text-[16px] font-semibold rounded-[12px] mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-12 bg-[#1F6343] text-white text-[16px] font-semibold rounded-xl mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>
@@ -131,9 +131,9 @@ const LoginPage: React.FC = () => {
 
         {/* DIVISOR */}
         <div className="flex items-center gap-3 my-6">
-          <div className="flex-1 h-[1px] bg-[#D1D5DB]" />
+          <div className="flex-1 h-px bg-[#D1D5DB]" />
           <span className="text-[14px] text-[#6B7280]">ou</span>
-          <div className="flex-1 h-[1px] bg-[#D1D5DB]" />
+          <div className="flex-1 h-px bg-[#D1D5DB]" />
         </div>
 
         {/* FOOTER */}

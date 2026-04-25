@@ -1,11 +1,10 @@
+// pages/Categories.tsx (corrigido - sem header duplicado)
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { graphqlRequest } from "../../services/api";
-import { GET_ME } from "../../graphql/queries/user";
 import { getIconByKey, getColorClass, getIconBgColor } from "../../utils/icons";
 import { NewCategoryModal } from "../../components/NewCategoryModal";
 import { EditCategoryModal } from "../../components/EditCategoryModal";
-import Logo from "../../assets/Logo.png";
 import editIcon from "../../assets/editar.png";
 import deleteIcon from "../../assets/delete.png";
 import tagIcon from "../../assets/tag.png";
@@ -26,12 +25,6 @@ type Transaction = {
   category: Category;
 };
 
-type User = {
-  id: string;
-  email: string;
-  name: string;
-};
-
 type CategoryWithCount = {
   id: string;
   name: string;
@@ -43,10 +36,8 @@ type CategoryWithCount = {
 
 const CategoriesPage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [categories, setCategories] = useState<CategoryWithCount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
   const [totalCategories, setTotalCategories] = useState(0);
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [mostUsedCategory, setMostUsedCategory] = useState<{
@@ -55,30 +46,8 @@ const CategoriesPage = () => {
     icon?: string;
   } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<CategoryWithCount | null>(null);
-
-  const getUserInitials = (name: string) => {
-    if (!name) return "U";
-    const names = name.trim().split(" ");
-    if (names.length === 1) return names[0].charAt(0).toUpperCase();
-    return (
-      names[0].charAt(0) + names[names.length - 1].charAt(0)
-    ).toUpperCase();
-  };
-
-  const fetchUser = async () => {
-    try {
-      const data = await graphqlRequest<{ me: User }>(GET_ME);
-      setUser(data.me);
-    } catch {
-      console.error("Erro ao carregar usuário:");
-      const token = localStorage.getItem("token");
-      if (!token) {
-        localStorage.removeItem("token");
-        navigate("/");
-      }
-    }
-  };
+  const [editingCategory, setEditingCategory] =
+    useState<CategoryWithCount | null>(null);
 
   const fetchCategories = async () => {
     try {
@@ -175,7 +144,9 @@ const CategoriesPage = () => {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Tem certeza que deseja excluir a categoria "${name}"?`)) {
+    if (
+      window.confirm(`Tem certeza que deseja excluir a categoria "${name}"?`)
+    ) {
       try {
         const deleteMutation = `
           mutation DeleteCategory($id: ID!) {
@@ -197,225 +168,185 @@ const CategoriesPage = () => {
       navigate("/");
       return;
     }
-    fetchUser();
     fetchCategories();
-  }, []);
+  }, [navigate]);
 
   if (loading) {
-    return <p className="p-8">Carregando...</p>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-gray-500">Carregando categorias...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] font-[Inter]">
-      {/* HEADER */}
-      <header className="w-full h-16 bg-white border-b border-[#E5E7EB] relative flex items-center px-8">
-        <img src={Logo} alt="Financy" className="w-30" />
-
-        <nav className="absolute left-1/2 -translate-x-1/2 flex gap-6 text-[14px]">
-          <span
-            className={`cursor-pointer transition-colors ${
-              location.pathname === "/dashboard"
-                ? "text-[#1F6343] font-semibold"
-                : "text-[#6B7280] hover:text-[#1F6343]"
-            }`}
-            onClick={() => navigate("/dashboard")}
-          >
-            Dashboard
-          </span>
-          <span
-            className={`cursor-pointer transition-colors ${
-              location.pathname === "/transactions"
-                ? "text-[#1F6343] font-semibold"
-                : "text-[#6B7280] hover:text-[#1F6343]"
-            }`}
-            onClick={() => navigate("/transactions")}
-          >
-            Transações
-          </span>
-          <span
-            className={`cursor-pointer transition-colors ${
-              location.pathname === "/categories"
-                ? "text-[#1F6343] font-semibold"
-                : "text-[#6B7280] hover:text-[#1F6343]"
-            }`}
-            onClick={() => navigate("/categories")}
-          >
-            Categorias
-          </span>
-        </nav>
-
-        <div className="ml-auto">
-          <div
-            className="w-10 h-10 rounded-full bg-[#1F6343] flex items-center justify-center font-semibold text-white cursor-pointer hover:bg-[#154d34] transition-colors"
-            title={user?.name || "Usuário"}
-          >
-            {user ? getUserInitials(user.name) : "U"}
-          </div>
+    <div>
+      {/* TÍTULO E BOTÃO - sem o header duplicado */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-800">Categorias</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Organize suas transações por categorias
+          </p>
         </div>
-      </header>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-[#1F6343] text-white rounded-lg hover:bg-[#154d34] transition-colors cursor-pointer"
+        >
+          + Nova categoria
+        </button>
+      </div>
 
-      <main className="p-8">
-        {/* TÍTULO E BOTÃO */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-800">Categorias</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Organize suas transações por categorias
-            </p>
-          </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1F6343] text-white rounded-lg hover:bg-[#154d34] transition-colors cursor-pointer"
-          >
-            + Nova categoria
-          </button>
-        </div>
-
-        {/* CARDS DE ESTATÍSTICAS */}
-        <div className="grid grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl border border-[#E5E7EB]">
-            <div className="flex items-center gap-3">
-              <img src={tagIcon} alt="Categorias" className="w-10 h-10" />
-              <div className="flex-1">
-                <p className="text-[32px] font-bold text-gray-800 leading-tight">
-                  {totalCategories}
-                </p>
-                <p className="text-sm text-[#6B7280] leading-tight">
-                  TOTAL DE CATEGORIAS
-                </p>
-              </div>
+      {/* CARDS DE ESTATÍSTICAS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+        <div className="bg-white p-4 sm:p-6 rounded-xl border border-[#E5E7EB]">
+          <div className="flex items-center gap-3">
+            <img
+              src={tagIcon}
+              alt="Categorias"
+              className="w-8 h-8 sm:w-10 sm:h-10"
+            />
+            <div className="flex-1">
+              <p className="text-2xl sm:text-[32px] font-bold text-gray-800 leading-tight">
+                {totalCategories}
+              </p>
+              <p className="text-xs sm:text-sm text-[#6B7280] leading-tight">
+                TOTAL DE CATEGORIAS
+              </p>
             </div>
           </div>
+        </div>
 
-          <div className="bg-white p-6 rounded-xl border border-[#E5E7EB]">
-            <div className="flex items-center gap-3">
+        <div className="bg-white p-4 sm:p-6 rounded-xl border border-[#E5E7EB]">
+          <div className="flex items-center gap-3">
+            <img
+              src={totalTransacaoIcon}
+              alt="Transações"
+              className="w-8 h-8 sm:w-10 sm:h-10"
+            />
+            <div className="flex-1">
+              <p className="text-2xl sm:text-[32px] font-bold text-gray-800 leading-tight">
+                {totalTransactions}
+              </p>
+              <p className="text-xs sm:text-sm text-[#6B7280] leading-tight">
+                TOTAL DE TRANSAÇÕES
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 sm:p-6 rounded-xl border border-[#E5E7EB]">
+          <div className="flex items-center gap-3">
+            {mostUsedCategory ? (
               <img
-                src={totalTransacaoIcon}
-                alt="Transações"
-                className="w-10 h-10"
+                src={getIconByKey(mostUsedCategory.icon || "")}
+                alt={mostUsedCategory.name}
+                className="w-8 h-8 sm:w-10 sm:h-10"
               />
-              <div className="flex-1">
-                <p className="text-[32px] font-bold text-gray-800 leading-tight">
-                  {totalTransactions}
+            ) : (
+              <img
+                src={tagIcon}
+                alt="Nenhuma categoria"
+                className="w-8 h-8 sm:w-10 sm:h-10"
+              />
+            )}
+            <div className="flex-1">
+              <p className="text-lg sm:text-[32px] font-bold text-gray-800 leading-tight truncate">
+                {mostUsedCategory?.name || "Nenhuma"}
+              </p>
+              <p className="text-xs sm:text-sm text-[#6B7280] leading-tight">
+                CATEGORIA MAIS UTILIZADA
+              </p>
+              {mostUsedCategory && (
+                <p className="text-xs text-gray-500 mt-1 leading-tight">
+                  {mostUsedCategory.count}{" "}
+                  {mostUsedCategory.count === 1 ? "item" : "itens"}
                 </p>
-                <p className="text-sm text-[#6B7280] leading-tight">
-                  TOTAL DE TRANSAÇÕES
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl border border-[#E5E7EB]">
-            <div className="flex items-center gap-3">
-              {mostUsedCategory ? (
-                <img
-                  src={getIconByKey(mostUsedCategory.icon || "")}
-                  alt={mostUsedCategory.name}
-                  className="w-10 h-10"
-                />
-              ) : (
-                <img
-                  src={tagIcon}
-                  alt="Nenhuma categoria"
-                  className="w-10 h-10"
-                />
               )}
-              <div className="flex-1">
-                <p className="text-[32px] font-bold text-gray-800 leading-tight">
-                  {mostUsedCategory?.name || "Nenhuma"}
-                </p>
-                <p className="text-sm text-[#6B7280] leading-tight">
-                  CATEGORIA MAIS UTILIZADA
-                </p>
-                {mostUsedCategory && (
-                  <p className="text-sm text-gray-500 mt-1 leading-tight">
-                    {mostUsedCategory.count}{" "}
-                    {mostUsedCategory.count === 1 ? "item" : "itens"}
-                  </p>
-                )}
-              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* LISTA DE CATEGORIAS EM GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categories.length === 0 ? (
-            <p className="text-center text-gray-500 py-12 col-span-3">
-              Nenhuma categoria encontrada
-            </p>
-          ) : (
-            categories.map((cat) => {
-              const colorClass = getColorClass(cat.color || "");
-              const iconBgColor = getIconBgColor(cat.color || "");
-              const iconImage = getIconByKey(cat.icon || "");
-              return (
-                <div
-                  key={cat.id}
-                  className="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconBgColor}`}>
-                      <img
-                        src={iconImage}
-                        className="w-8 h-8"
-                        alt={cat.name}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="font-semibold text-gray-800 text-base">
-                          {cat.name}
-                        </p>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => setEditingCategory(cat)}
-                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="Editar"
-                          >
-                            <img
-                              src={editIcon}
-                              className="w-4 h-4"
-                              alt="editar"
-                            />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(cat.id, cat.name)}
-                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="Excluir"
-                          >
-                            <img
-                              src={deleteIcon}
-                              className="w-4 h-4"
-                              alt="excluir"
-                            />
-                          </button>
-                        </div>
-                      </div>
-                      {cat.description && (
-                        <p className="text-sm text-gray-500 mt-1">
-                          {cat.description}
-                        </p>
-                      )}
-                    </div>
+      {/* LISTA DE CATEGORIAS EM GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {categories.length === 0 ? (
+          <p className="text-center text-gray-500 py-12 col-span-3">
+            Nenhuma categoria encontrada
+          </p>
+        ) : (
+          categories.map((cat) => {
+            const colorClass = getColorClass(cat.color || "");
+            const iconBgColor = getIconBgColor(cat.color || "");
+            const iconImage = getIconByKey(cat.icon || "");
+            return (
+              <div
+                key={cat.id}
+                className="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start gap-3 mb-3">
+                  <div
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBgColor}`}
+                  >
+                    <img
+                      src={iconImage}
+                      className="w-6 h-6 sm:w-8 sm:h-8"
+                      alt={cat.name}
+                    />
                   </div>
-
-                  <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                    <span
-                      className={`text-xs px-3 py-1 rounded-full ${colorClass}`}
-                    >
-                      {cat.name}
-                    </span>
-                    <span className="text-sm font-medium text-gray-700">
-                      {cat.count} {cat.count === 1 ? "item" : "itens"}
-                    </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-gray-800 text-sm sm:text-base truncate">
+                        {cat.name}
+                      </p>
+                      <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                        <button
+                          onClick={() => setEditingCategory(cat)}
+                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Editar"
+                        >
+                          <img
+                            src={editIcon}
+                            className="w-4 h-4"
+                            alt="editar"
+                          />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(cat.id, cat.name)}
+                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Excluir"
+                        >
+                          <img
+                            src={deleteIcon}
+                            className="w-4 h-4"
+                            alt="excluir"
+                          />
+                        </button>
+                      </div>
+                    </div>
+                    {cat.description && (
+                      <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">
+                        {cat.description}
+                      </p>
+                    )}
                   </div>
                 </div>
-              );
-            })
-          )}
-        </div>
-      </main>
+
+                <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                  <span
+                    className={`text-xs px-2 sm:px-3 py-1 rounded-full ${colorClass}`}
+                  >
+                    {cat.name}
+                  </span>
+                  <span className="text-xs sm:text-sm font-medium text-gray-700">
+                    {cat.count} {cat.count === 1 ? "item" : "itens"}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
 
       {/* MODAL NOVA CATEGORIA */}
       {isModalOpen && (

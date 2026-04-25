@@ -1,3 +1,4 @@
+// App.tsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "./pages/Login";
 import { RegisterPage } from "./pages/Resgister";
@@ -5,47 +6,25 @@ import { DashboardPage } from "./pages/Dashboard";
 import { TransactionsPage } from "./pages/Transactions";
 import { CategoriesPage } from "./pages/Categories";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
+import { Layout } from "./components/Layout";
 
 function App() {
   return (
     <Routes>
-      {/* LOGIN */}
+      {/* Rotas públicas */}
       <Route path="/" element={<LoginPage />} />
-
-      {/* REGISTER */}
       <Route path="/register" element={<RegisterPage />} />
 
-      {/* DASHBOARD PROTEGIDO */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        }
-      />
+      {/* Rotas protegidas com Layout compartilhado */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<Layout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/transactions" element={<TransactionsPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+        </Route>
+      </Route>
 
-      {/* TRANSAÇÕES PROTEGIDO */}
-      <Route
-        path="/transactions"
-        element={
-          <ProtectedRoute>
-            <TransactionsPage />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* CATEGORIAS PROTEGIDO */}
-      <Route
-        path="/categories"
-        element={
-          <ProtectedRoute>
-            <CategoriesPage />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* fallback */}
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

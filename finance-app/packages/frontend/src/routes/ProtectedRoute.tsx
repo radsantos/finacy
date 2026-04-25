@@ -1,15 +1,13 @@
-import { Navigate } from 'react-router-dom';
+// routes/ProtectedRoute.tsx
+import { Navigate, Outlet } from "react-router-dom";
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-}
+export const ProtectedRoute = () => {
+  const token = localStorage.getItem("token");
 
-export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const token = localStorage.getItem('token');
-  
   if (!token) {
     return <Navigate to="/" replace />;
   }
-  
-  return <>{children}</>;
+
+  // Retorna Outlet para renderizar as rotas filhas
+  return <Outlet />;
 };
