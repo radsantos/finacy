@@ -1,4 +1,3 @@
-// components/ConfirmModal.tsx
 import { useEffect } from "react";
 
 type ConfirmModalProps = {
@@ -70,8 +69,8 @@ export const ConfirmModal = ({
   const styles = getTypeStyles();
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-2xl w-full max-w-[400px] shadow-xl">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-100 shadow-xl">
         <div className="p-4 sm:p-6">
           {/* Ícone */}
           <div className="flex justify-center mb-4">

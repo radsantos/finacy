@@ -1,4 +1,3 @@
-// pages/Categories.tsx (corrigido - sem header duplicado)
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { graphqlRequest } from "../../services/api";
@@ -181,7 +180,7 @@ const CategoriesPage = () => {
 
   return (
     <div>
-      {/* TÍTULO E BOTÃO - sem o header duplicado */}
+      {/* TÍTULO E BOTÃO */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Categorias</h1>
@@ -268,7 +267,7 @@ const CategoriesPage = () => {
         </div>
       </div>
 
-      {/* LISTA DE CATEGORIAS EM GRID */}
+      {/* LISTA DE CATEGORIAS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {categories.length === 0 ? (
           <p className="text-center text-gray-500 py-12 col-span-3">

@@ -9,7 +9,6 @@ export class AuthService {
 
     const passwordHash = await hashPassword(password);
 
-    // Criar apenas o usuário, SEM categorias automáticas
     const user = await prisma.user.create({
       data: {
         email,
@@ -17,8 +16,6 @@ export class AuthService {
         name,
       },
     });
-
-    console.log(`✅ Usuário criado: ${user.email}`);
 
     const token = generateToken(user.id);
     return { token, user };

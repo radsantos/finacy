@@ -1,4 +1,3 @@
-// pages/Transactions/index.tsx
 import { useState, useEffect } from "react";
 import { graphqlRequest } from "../../services/api";
 import { GET_TRANSACTIONS } from "../../graphql/queries/transactions";

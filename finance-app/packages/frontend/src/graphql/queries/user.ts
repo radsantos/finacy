@@ -1,4 +1,3 @@
-// user.ts
 export const GET_ME = `
   query GetMe {
     me {
