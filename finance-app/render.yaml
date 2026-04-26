@@ -1,4 +1,3 @@
-# render.yaml (na RAIZ do projeto, não dentro de packages)
 services:
   - type: web
     name: finacy-backend
@@ -20,8 +19,6 @@ services:
         generateValue: true
       - key: NODE_ENV
         value: production
-      - key: FRONTEND_URL
-        value: https://finacy-frontend-test.vercel.app
       - key: PNPM_HOME
         value: /opt/render/.pnpm
 
