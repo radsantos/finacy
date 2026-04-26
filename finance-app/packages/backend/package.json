@@ -8,7 +8,9 @@
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@apollo/server": "^4.10.0",
@@ -31,5 +33,9 @@
     "prisma": "5.22.0",
     "tsx": "^4.7.1",
     "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": "18.x",
+    "pnpm": "8.x"
   }
 }
