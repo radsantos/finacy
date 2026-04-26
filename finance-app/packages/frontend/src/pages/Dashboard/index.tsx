@@ -1,4 +1,3 @@
-// pages/Dashboard/index.tsx
 import { useEffect, useState } from "react";
 import { graphqlRequest } from "../../services/api";
 import { GET_DASHBOARD } from "../../graphql/queries/dashboard";

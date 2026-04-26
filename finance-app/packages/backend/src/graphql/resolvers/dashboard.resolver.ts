@@ -11,7 +11,7 @@ export const dashboardResolvers = {
         orderBy: { date: "desc" },
       });
 
-      // 🔥 CONVERTER AS DATAS PARA ISO STRING 🔥
+      // CONVERTER AS DATAS PARA ISO STRING
       const transactionsWithISO = transactions.map((t) => ({
         ...t,
         date: t.date.toISOString(),

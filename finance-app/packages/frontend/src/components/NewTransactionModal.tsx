@@ -125,7 +125,7 @@ export const NewTransactionModal = ({
       await fetchCategories();
     };
     init();
-  }, [fetchCategories]); // Adicionado fetchCategories como dependência
+  }, [fetchCategories]); // FetchCategories como dependência
 
   // Criar categoria de receita quando necessário
   useEffect(() => {
@@ -135,7 +135,7 @@ export const NewTransactionModal = ({
       }
     };
     initIncomeCategory();
-  }, [type, incomeCategoryId, createIncomeCategory]); // Adicionadas dependências corretas
+  }, [type, incomeCategoryId, createIncomeCategory]);
 
   // Quando mudar o tipo, ajustar a categoria selecionada
   useEffect(() => {

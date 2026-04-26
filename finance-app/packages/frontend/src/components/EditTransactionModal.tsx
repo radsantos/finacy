@@ -12,7 +12,7 @@ type Transaction = {
   amount: number;
   type: "INCOME" | "EXPENSE";
   category: Category;
-  date: string; // ← apenas string, não string | number
+  date: string;
 };
 
 type EditTransactionModalProps = {
@@ -54,7 +54,6 @@ export const EditTransactionModal = ({
   const [type, setType] = useState<"EXPENSE" | "INCOME">(transaction.type);
   const [description, setDescription] = useState(transaction.description);
   const [date, setDate] = useState(() => {
-    // Garantir que a data seja string
     if (typeof transaction.date === "string") {
       return transaction.date.split("T")[0];
     }

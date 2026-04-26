@@ -233,9 +233,9 @@ const RegisterPage: React.FC = () => {
 
         {/* DIVISOR */}
         <div className="flex items-center gap-3 my-6">
-          <div className="flex-1 h-[1px] bg-[#D1D5DB]" />
+          <div className="flex-1 h-px] bg-[#D1D5DB]" />
           <span className="text-[14px] text-[#6B7280]">ou</span>
-          <div className="flex-1 h-[1px] bg-[#D1D5DB]" />
+          <div className="flex-1 h-px bg-[#D1D5DB]" />
         </div>
 
         {/* FOOTER */}
@@ -243,7 +243,7 @@ const RegisterPage: React.FC = () => {
           <p className="text-[14px] text-[#6B7280]">Já tem uma conta?</p>
           <button
             onClick={() => (window.location.href = "/")}
-            className="mt-3 w-full h-[48px] border border-[#D1D5DB] rounded-[12px] text-[#374151] font-semibold hover:bg-gray-50 flex items-center justify-center gap-2"
+            className="mt-3 w-full h-12 border border-[#D1D5DB] rounded-xl text-[#374151] font-semibold hover:bg-gray-50 flex items-center justify-center gap-2"
           >
             <img src={EntrarIcon} alt="Entrar" className="w-5" />
             Fazer login

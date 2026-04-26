@@ -4,6 +4,8 @@ export const GET_CATEGORIES = `
       id
       name
       description
+      color
+      icon
     }
   }
 `;
@@ -14,6 +16,26 @@ export const CREATE_CATEGORY = `
       id
       name
       description
+      color
+      icon
     }
+  }
+`;
+
+export const UPDATE_CATEGORY = `
+  mutation UpdateCategory($id: ID!, $input: UpdateCategoryInput!) {
+    updateCategory(id: $id, input: $input) {
+      id
+      name
+      description
+      color
+      icon
+    }
+  }
+`;
+
+export const DELETE_CATEGORY = `
+  mutation DeleteCategory($id: ID!) {
+    deleteCategory(id: $id)
   }
 `;
