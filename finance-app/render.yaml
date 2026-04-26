@@ -1,17 +1,11 @@
-# render.yaml
 services:
   - type: web
     name: finacy-backend
     runtime: node
     plan: free
     rootDir: packages/backend
-    buildCommand: |
-      cd ../..
-      npm install -g pnpm
-      pnpm install
-      pnpm build:backend
-    startCommand: pnpm start:backend
-    disk:
-      name: sqlite-data
-      mountPath: /data
-      sizeGB: 1
+    buildCommand: cd ../.. && npm install -g pnpm && pnpm install && pnpm build:backend
+    startCommand: cd ../.. && pnpm start:backend
+    envVars:
+      - key: NODE_ENV
+        value: production
