@@ -3,9 +3,8 @@ services:
     name: finacy-backend
     runtime: node
     plan: free
-    rootDir: packages/backend
-    buildCommand: cd ../.. && npm install -g pnpm && pnpm install && pnpm build:backend
-    startCommand: cd ../.. && pnpm start:backend
+    buildCommand: cd packages/backend && npm install -g pnpm && pnpm install && pnpm build
+    startCommand: cd packages/backend && pnpm start
     envVars:
       - key: NODE_ENV
         value: production
