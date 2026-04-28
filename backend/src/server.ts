@@ -75,6 +75,7 @@ async function startServer() {
     "http://localhost:5173",
     "https://financy-frontend-nu.vercel.app",
     "https://finacy-frontend-test.vercel.app",
+    "https://financy-frontend-dun.vercel.app",
   ];
 
   app.use(
@@ -84,6 +85,7 @@ async function startServer() {
         if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {
+          console.log(`Blocked origin: ${origin}`);
           callback(new Error("Not allowed by CORS"));
         }
       },
