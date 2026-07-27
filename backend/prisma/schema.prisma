@@ -1,50 +1,54 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
+// Seu modelo User existente
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String?
-  passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   transactions Transaction[]
-  categories   Category[]
+  categories    Category[]
 }
 
+// Seu modelo Category existente
 model Category {
   id          String   @id @default(cuid())
   name        String
   description String?
-  icon        String?  
-  color       String?  
+  icon        String?
+  color       String?
+  type        String   @default("EXPENSE")
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
-
-  @@unique([userId, name])
 }
 
+// Seu modelo Transaction existente
 model Transaction {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   description String
   amount      Float
   type        String
   date        DateTime
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   categoryId  String
-  category    Category  @relation(fields: [categoryId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id])
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

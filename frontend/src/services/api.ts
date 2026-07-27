@@ -1,8 +1,10 @@
 import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/graphql";
+
 const httpLink = createHttpLink({
-  uri: "http://localhost:4000/graphql",
+  uri: API_URL,
 });
 
 const authLink = setContext((_, { headers }) => {
@@ -29,7 +31,7 @@ export async function graphqlRequest<T = unknown>(
 ): Promise<T> {
   const token = localStorage.getItem("token");
 
-  const response = await fetch("http://localhost:4000/graphql", {
+  const response = await fetch(API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
