@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { graphqlRequest } from "../services/api";
 import { useToast } from "../hooks/useToast";
 
@@ -121,32 +121,49 @@ export const NewTransactionModal = ({
 
   // Inicialização do modal
   useEffect(() => {
+    let isMounted = true;
     const init = async () => {
-      await fetchCategories();
+      if (isMounted) {
+        await fetchCategories();
+      }
     };
     init();
-  }, [fetchCategories]); // FetchCategories como dependência
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchCategories]);
 
   // Criar categoria de receita quando necessário
   useEffect(() => {
+    let isMounted = true;
     const initIncomeCategory = async () => {
-      if (type === "INCOME" && !incomeCategoryId) {
+      if (type === "INCOME" && !incomeCategoryId && isMounted) {
         await createIncomeCategory();
       }
     };
     initIncomeCategory();
+    return () => {
+      isMounted = false;
+    };
   }, [type, incomeCategoryId, createIncomeCategory]);
 
-  // Quando mudar o tipo, ajustar a categoria selecionada
-  useEffect(() => {
+  // ✅ Calcular o valor padrão da categoria durante a renderização
+  // Isso evita o setState dentro do useEffect (corrige o ESLint)
+  const defaultCategoryId = useMemo(() => {
     if (type === "INCOME" && incomeCategoryId) {
-      setSelectedCategoryId(incomeCategoryId);
-    } else if (type === "EXPENSE" && categories.length > 0) {
-      setSelectedCategoryId(categories[0]?.id || "");
-    } else if (type === "EXPENSE" && categories.length === 0) {
-      setSelectedCategoryId("");
+      return incomeCategoryId;
     }
+    if (type === "EXPENSE" && categories.length > 0) {
+      return categories[0]?.id || "";
+    }
+    return "";
   }, [type, incomeCategoryId, categories]);
+
+  // Usar selectedCategoryId se existir, senão usar o padrão
+  const activeCategoryId = selectedCategoryId || defaultCategoryId;
+
+  // NOTA: O useEffect que sincronizava selectedCategoryId foi removido
+  // pois o activeCategoryId já resolve o problema diretamente na renderização
 
   const formatAmount = (value: string) => {
     const num = parseFloat(value.replace(/[^0-9]/g, "")) / 100;
@@ -171,7 +188,7 @@ export const NewTransactionModal = ({
       return;
     }
 
-    if (type === "EXPENSE" && !selectedCategoryId && categories.length > 0) {
+    if (type === "EXPENSE" && !activeCategoryId && categories.length > 0) {
       const confirmSave = window.confirm(
         "Você não selecionou uma categoria. Deseja salvar mesmo assim?",
       );
@@ -197,7 +214,7 @@ export const NewTransactionModal = ({
           amount: amountValue,
           type,
           date: correctedDate,
-          categoryId: selectedCategoryId || null,
+          categoryId: activeCategoryId || null,
         },
       });
 
@@ -217,7 +234,7 @@ export const NewTransactionModal = ({
     }
   };
 
-  const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
+  const selectedCategory = categories.find((c) => c.id === activeCategoryId);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
