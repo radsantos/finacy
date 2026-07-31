@@ -4,6 +4,9 @@ type Category {
   description: String
   icon: String
   color: String
+  type: String!
+  transactionCount: Int!
+  totalAmount: Float!
   createdAt: String!
   updatedAt: String!
 }
@@ -13,6 +16,7 @@ input CreateCategoryInput {
   description: String
   icon: String
   color: String
+  type: String
 }
 
 input UpdateCategoryInput {
@@ -20,6 +24,7 @@ input UpdateCategoryInput {
   description: String
   icon: String
   color: String
+  type: String
 }
 
 extend type Mutation {
