@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -8,7 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Seu modelo User existente
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -18,10 +17,9 @@ model User {
   updatedAt DateTime @updatedAt
 
   transactions Transaction[]
-  categories    Category[]
+  categories   Category[]
 }
 
-// Seu modelo Category existente
 model Category {
   id          String   @id @default(cuid())
   name        String
@@ -33,11 +31,12 @@ model Category {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
+
+  @@unique([userId, name])
 }
 
-// Seu modelo Transaction existente
 model Transaction {
   id          String   @id @default(cuid())
   description String

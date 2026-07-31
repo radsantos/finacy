@@ -85,7 +85,7 @@ export const Toast = ({
       }`}
     >
       <div
-        className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg ${bgColor} text-white min-w-[300px] max-w-[400px]`}
+        className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg ${bgColor} text-white min-w-75 max-w-100`}
       >
         {icon}
         <span className="text-sm font-medium">{message}</span>

@@ -2,11 +2,20 @@ FROM node:20
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm install
+RUN corepack enable
 
-COPY . .
+COPY package.json ./
+COPY pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml ./
+
+COPY backend ./backend
+
+RUN pnpm install --frozen-lockfile
+
+WORKDIR /app/backend
+
+RUN pnpm prisma generate
 
 EXPOSE 4000
 
-CMD ["pnpm", "dev"]
+CMD ["sh", "-c", "pnpm prisma migrate deploy && pnpm dev"]

@@ -1,65 +1,79 @@
 import { prisma } from "../lib/prisma.js";
 
 export class CategoryService {
-  async createCategory(
-    userId: string,
-    data: {
-      name: string;
-      description?: string;
-      icon?: string;
-      color?: string;
-    },
-  ) {
-    return await prisma.category.create({
-      data: {
-        name: data.name,
-        description: data.description,
-        icon: data.icon,
-        color: data.color,
+  async getCategories(userId: string) {
+    const categories = await prisma.category.findMany({
+      where: {
         userId,
       },
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        _count: {
+          select: {
+            transactions: true,
+          },
+        },
+        transactions: {
+          select: {
+            amount: true,
+          },
+        },
+      },
+    });
+
+    return categories.map((category) => {
+      const totalAmount = category.transactions.reduce(
+        (total, transaction) => total + transaction.amount,
+        0,
+      );
+
+      const { transactions, _count, ...categoryData } = category;
+
+      return {
+        ...categoryData,
+        transactionCount: _count.transactions,
+        totalAmount,
+      };
     });
   }
 
-  async getCategories(userId: string) {
-    return await prisma.category.findMany({
-      where: { userId },
-      orderBy: { name: "asc" },
-    });
-  }
-
-  async getCategoryById(userId: string, id: string) {
-    return await prisma.category.findFirst({
-      where: { id, userId },
-    });
-  }
-
-  async updateCategory(
-    userId: string,
-    id: string,
-    data: {
-      name?: string;
-      description?: string;
-      icon?: string;
-      color?: string;
-    },
-  ) {
+  async getCategoryById(userId: string, categoryId: string) {
     const category = await prisma.category.findFirst({
-      where: { id, userId },
+      where: {
+        id: categoryId,
+        userId,
+      },
+      include: {
+        _count: {
+          select: {
+            transactions: true,
+          },
+        },
+        transactions: {
+          select: {
+            amount: true,
+          },
+        },
+      },
     });
-    if (!category) throw new Error("Category not found");
-    return await prisma.category.update({
-      where: { id },
-      data,
-    });
-  }
 
-  async deleteCategory(userId: string, id: string) {
-    const category = await prisma.category.findFirst({
-      where: { id, userId },
-    });
-    if (!category) throw new Error("Category not found");
-    await prisma.category.delete({ where: { id } });
-    return true;
+    if (!category) {
+      return null;
+    }
+
+    const totalAmount = category.transactions.reduce(
+      (total, transaction) => total + transaction.amount,
+      0,
+    );
+
+    const { transactions, _count, ...categoryData } = category;
+
+    return {
+      ...categoryData,
+      transactionCount: _count.transactions,
+      totalAmount,
+    };
   }
 }

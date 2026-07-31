@@ -1,9 +1,17 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import { graphqlRequest } from "../../services/api";
-import { getIconByKey, getColorClass, getIconBgColor } from "../../utils/icons";
+
+import {
+  getColorClass,
+  getIconBgColor,
+  getIconByKey,
+} from "../../utils/icons";
+
 import { NewCategoryModal } from "../../components/NewCategoryModal";
 import { EditCategoryModal } from "../../components/EditCategoryModal";
+
 import editIcon from "../../assets/editar.png";
 import deleteIcon from "../../assets/delete.png";
 import tagIcon from "../../assets/tag.png";
@@ -12,16 +20,11 @@ import totalTransacaoIcon from "../../assets/totalTransacoes.png";
 type Category = {
   id: string;
   name: string;
-  description: string;
-  icon?: string;
-  color?: string;
-};
-
-type Transaction = {
-  id: string;
-  amount: number;
-  type: "INCOME" | "EXPENSE";
-  category: Category;
+  description?: string | null;
+  icon?: string | null;
+  color?: string | null;
+  transactionCount?: number | null;
+  totalAmount?: number | null;
 };
 
 type CategoryWithCount = {
@@ -31,26 +34,41 @@ type CategoryWithCount = {
   icon?: string;
   color?: string;
   count: number;
+  totalAmount: number;
 };
+
+type MostUsedCategory = {
+  name: string;
+  count: number;
+  icon?: string;
+} | null;
 
 const CategoriesPage = () => {
   const navigate = useNavigate();
+
   const [categories, setCategories] = useState<CategoryWithCount[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [deletingCategoryId, setDeletingCategoryId] = useState<
+    string | null
+  >(null);
+
   const [totalCategories, setTotalCategories] = useState(0);
   const [totalTransactions, setTotalTransactions] = useState(0);
-  const [mostUsedCategory, setMostUsedCategory] = useState<{
-    name: string;
-    count: number;
-    icon?: string;
-  } | null>(null);
+
+  const [mostUsedCategory, setMostUsedCategory] =
+    useState<MostUsedCategory>(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+
   const [editingCategory, setEditingCategory] =
     useState<CategoryWithCount | null>(null);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async (): Promise<void> => {
+    setLoading(true);
+
     try {
-      const query = `
+      const categoriesQuery = `
         query GetCategories {
           categories {
             id
@@ -58,316 +76,495 @@ const CategoriesPage = () => {
             description
             icon
             color
+            transactionCount
+            totalAmount
           }
         }
       `;
-      const data = await graphqlRequest<{ categories: Category[] }>(query);
 
-      const transactionsQuery = `
-        query GetTransactions {
-          transactions {
-            id
-            amount
-            type
-            category {
-              id
-              name
+      const categoriesData = await graphqlRequest<{
+        categories: Category[];
+      }>(categoriesQuery);
+
+      const categoriesWithCount: CategoryWithCount[] =
+        (categoriesData.categories ?? []).map((category) => ({
+          id: category.id,
+          name: category.name,
+          description: category.description ?? "",
+          icon: category.icon ?? undefined,
+          color: category.color ?? undefined,
+          count: category.transactionCount ?? 0,
+          totalAmount: category.totalAmount ?? 0,
+        }));
+
+      categoriesWithCount.sort((categoryA, categoryB) =>
+        categoryA.name.localeCompare(categoryB.name, "pt-BR"),
+      );
+
+      const totalTransactionsCount = categoriesWithCount.reduce(
+        (total, category) => total + category.count,
+        0,
+      );
+
+      const mostUsed =
+        categoriesWithCount.reduce<CategoryWithCount | null>(
+          (currentMostUsed, category) => {
+            if (!currentMostUsed) {
+              return category;
             }
-          }
-        }
-      `;
-      const transactionsData = await graphqlRequest<{
-        transactions: Transaction[];
-      }>(transactionsQuery);
 
-      const categoryCount = new Map<
-        string,
-        {
-          name: string;
-          count: number;
-          icon?: string;
-          color?: string;
-          description?: string;
-        }
-      >();
-      let totalTrans = 0;
+            if (category.count > currentMostUsed.count) {
+              return category;
+            }
 
-      transactionsData.transactions.forEach((t) => {
-        if (t.type === "EXPENSE") {
-          totalTrans++;
-          const catId = t.category.id;
-          const catName = t.category.name;
-          if (categoryCount.has(catId)) {
-            const existing = categoryCount.get(catId)!;
-            existing.count++;
-          } else {
-            categoryCount.set(catId, { name: catName, count: 1 });
-          }
-        }
-      });
+            return currentMostUsed;
+          },
+          null,
+        );
 
-      setTotalTransactions(totalTrans);
-      setTotalCategories(data.categories.length);
-
-      const categoriesWithCount = data.categories.map((cat) => ({
-        id: cat.id,
-        name: cat.name,
-        description: cat.description,
-        icon: cat.icon,
-        color: cat.color,
-        count: categoryCount.get(cat.id)?.count || 0,
-      }));
-
-      categoriesWithCount.sort((a, b) => a.name.localeCompare(b.name));
       setCategories(categoriesWithCount);
+      setTotalCategories(categoriesWithCount.length);
+      setTotalTransactions(totalTransactionsCount);
 
-      let mostUsed = null;
-      let maxCount = 0;
-      categoryCount.forEach((value) => {
-        if (value.count > maxCount) {
-          maxCount = value.count;
-          const catData = data.categories.find((c) => c.name === value.name);
-          mostUsed = {
-            name: value.name,
-            count: value.count,
-            icon: catData?.icon,
-          };
-        }
-      });
-      setMostUsedCategory(mostUsed);
+      if (mostUsed && mostUsed.count > 0) {
+        setMostUsedCategory({
+          name: mostUsed.name,
+          count: mostUsed.count,
+          icon: mostUsed.icon,
+        });
+      } else {
+        setMostUsedCategory(null);
+      }
     } catch (error) {
       console.error("Erro ao carregar categorias:", error);
+
+      setCategories([]);
+      setTotalCategories(0);
+      setTotalTransactions(0);
+      setMostUsedCategory(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleDelete = async (id: string, name: string) => {
-    if (
-      window.confirm(`Tem certeza que deseja excluir a categoria "${name}"?`)
-    ) {
-      try {
-        const deleteMutation = `
-          mutation DeleteCategory($id: ID!) {
-            deleteCategory(id: $id)
-          }
-        `;
-        await graphqlRequest(deleteMutation, { id });
-        await fetchCategories();
-      } catch (error) {
-        console.error("Erro ao excluir categoria:", error);
-        alert("Erro ao excluir categoria. Tente novamente.");
-      }
+  const handleDelete = async (
+    categoryId: string,
+    categoryName: string,
+  ): Promise<void> => {
+    const confirmed = window.confirm(
+      `Tem certeza que deseja excluir a categoria "${categoryName}"?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingCategoryId(categoryId);
+
+    try {
+      const deleteMutation = `
+        mutation DeleteCategory($id: ID!) {
+          deleteCategory(id: $id)
+        }
+      `;
+
+      await graphqlRequest<{ deleteCategory: boolean }>(
+        deleteMutation,
+        {
+          id: categoryId,
+        },
+      );
+
+      await fetchCategories();
+    } catch (error) {
+      console.error("Erro ao excluir categoria:", error);
+
+      window.alert(
+        "Não foi possível excluir a categoria. Verifique se ela possui transações vinculadas.",
+      );
+    } finally {
+      setDeletingCategoryId(null);
     }
   };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+
     if (!token) {
       navigate("/");
       return;
     }
-    fetchCategories();
-  }, [navigate]);
+
+    void fetchCategories();
+  }, [fetchCategories, navigate]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Carregando categorias...</p>
+      <div className="flex min-h-64 items-center justify-center">
+        <p className="text-sm text-gray-500">
+          Carregando categorias...
+        </p>
       </div>
     );
   }
 
   return (
-    <div>
+    <main>
       {/* TÍTULO E BOTÃO */}
-      <div className="flex justify-between items-center mb-6">
+      <section className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800">Categorias</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-semibold text-gray-800">
+            Categorias
+          </h1>
+
+          <p className="mt-1 text-sm text-gray-500">
             Organize suas transações por categorias
           </p>
         </div>
+
         <button
+          type="button"
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#1F6343] text-white rounded-lg hover:bg-[#154d34] transition-colors cursor-pointer"
+          className="
+            inline-flex
+            cursor-pointer
+            items-center
+            justify-center
+            gap-2
+            rounded-lg
+            bg-[#1F6343]
+            px-4
+            py-2.5
+            text-sm
+            font-medium
+            text-white
+            transition-colors
+            hover:bg-[#154d34]
+            focus:outline-none
+            focus:ring-2
+            focus:ring-[#1F6343]
+            focus:ring-offset-2
+          "
         >
-          + Nova categoria
+          <span aria-hidden="true">+</span>
+          Nova categoria
         </button>
-      </div>
+      </section>
 
       {/* CARDS DE ESTATÍSTICAS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-        <div className="bg-white p-4 sm:p-6 rounded-xl border border-[#E5E7EB]">
+      <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+        {/* TOTAL DE CATEGORIAS */}
+        <article className="rounded-xl border border-[#E5E7EB] bg-white p-4 sm:p-6">
           <div className="flex items-center gap-3">
             <img
               src={tagIcon}
-              alt="Categorias"
-              className="w-8 h-8 sm:w-10 sm:h-10"
+              alt=""
+              aria-hidden="true"
+              className="h-8 w-8 object-contain sm:h-10 sm:w-10"
             />
-            <div className="flex-1">
-              <p className="text-2xl sm:text-[32px] font-bold text-gray-800 leading-tight">
+
+            <div className="min-w-0 flex-1">
+              <p className="text-2xl font-bold leading-tight text-gray-800 sm:text-[32px]">
                 {totalCategories}
               </p>
-              <p className="text-xs sm:text-sm text-[#6B7280] leading-tight">
+
+              <p className="text-xs leading-tight text-[#6B7280] sm:text-sm">
                 TOTAL DE CATEGORIAS
               </p>
             </div>
           </div>
-        </div>
+        </article>
 
-        <div className="bg-white p-4 sm:p-6 rounded-xl border border-[#E5E7EB]">
+        {/* TOTAL DE TRANSAÇÕES */}
+        <article className="rounded-xl border border-[#E5E7EB] bg-white p-4 sm:p-6">
           <div className="flex items-center gap-3">
             <img
               src={totalTransacaoIcon}
-              alt="Transações"
-              className="w-8 h-8 sm:w-10 sm:h-10"
+              alt=""
+              aria-hidden="true"
+              className="h-8 w-8 object-contain sm:h-10 sm:w-10"
             />
-            <div className="flex-1">
-              <p className="text-2xl sm:text-[32px] font-bold text-gray-800 leading-tight">
+
+            <div className="min-w-0 flex-1">
+              <p className="text-2xl font-bold leading-tight text-gray-800 sm:text-[32px]">
                 {totalTransactions}
               </p>
-              <p className="text-xs sm:text-sm text-[#6B7280] leading-tight">
+
+              <p className="text-xs leading-tight text-[#6B7280] sm:text-sm">
                 TOTAL DE TRANSAÇÕES
               </p>
             </div>
           </div>
-        </div>
+        </article>
 
-        <div className="bg-white p-4 sm:p-6 rounded-xl border border-[#E5E7EB]">
+        {/* CATEGORIA MAIS UTILIZADA */}
+        <article className="rounded-xl border border-[#E5E7EB] bg-white p-4 sm:col-span-2 sm:p-6 lg:col-span-1">
           <div className="flex items-center gap-3">
-            {mostUsedCategory ? (
-              <img
-                src={getIconByKey(mostUsedCategory.icon || "")}
-                alt={mostUsedCategory.name}
-                className="w-8 h-8 sm:w-10 sm:h-10"
-              />
-            ) : (
-              <img
-                src={tagIcon}
-                alt="Nenhuma categoria"
-                className="w-8 h-8 sm:w-10 sm:h-10"
-              />
-            )}
-            <div className="flex-1">
-              <p className="text-lg sm:text-[32px] font-bold text-gray-800 leading-tight truncate">
-                {mostUsedCategory?.name || "Nenhuma"}
+            <img
+              src={
+                mostUsedCategory
+                  ? getIconByKey(mostUsedCategory.icon)
+                  : tagIcon
+              }
+              alt=""
+              aria-hidden="true"
+              className="h-8 w-8 shrink-0 object-contain sm:h-10 sm:w-10"
+            />
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-lg font-bold leading-tight text-gray-800 sm:text-[32px]">
+                {mostUsedCategory?.name ?? "Nenhuma"}
               </p>
-              <p className="text-xs sm:text-sm text-[#6B7280] leading-tight">
+
+              <p className="text-xs leading-tight text-[#6B7280] sm:text-sm">
                 CATEGORIA MAIS UTILIZADA
               </p>
+
               {mostUsedCategory && (
-                <p className="text-xs text-gray-500 mt-1 leading-tight">
+                <p className="mt-1 text-xs leading-tight text-gray-500">
                   {mostUsedCategory.count}{" "}
-                  {mostUsedCategory.count === 1 ? "item" : "itens"}
+                  {mostUsedCategory.count === 1
+                    ? "item"
+                    : "itens"}
                 </p>
               )}
             </div>
           </div>
-        </div>
-      </div>
+        </article>
+      </section>
 
       {/* LISTA DE CATEGORIAS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <section>
         {categories.length === 0 ? (
-          <p className="text-center text-gray-500 py-12 col-span-3">
-            Nenhuma categoria encontrada
-          </p>
+          <div className="rounded-xl border border-[#E5E7EB] bg-white px-6 py-12 text-center">
+            <p className="text-sm text-gray-500">
+              Nenhuma categoria encontrada
+            </p>
+          </div>
         ) : (
-          categories.map((cat) => {
-            const colorClass = getColorClass(cat.color || "");
-            const iconBgColor = getIconBgColor(cat.color || "");
-            const iconImage = getIconByKey(cat.icon || "");
-            return (
-              <div
-                key={cat.id}
-                className="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start gap-3 mb-3">
-                  <div
-                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBgColor}`}
-                  >
-                    <img
-                      src={iconImage}
-                      className="w-6 h-6 sm:w-8 sm:h-8"
-                      alt={cat.name}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="font-semibold text-gray-800 text-sm sm:text-base truncate">
-                        {cat.name}
-                      </p>
-                      <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                        <button
-                          onClick={() => setEditingCategory(cat)}
-                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Editar"
-                        >
-                          <img
-                            src={editIcon}
-                            className="w-4 h-4"
-                            alt="editar"
-                          />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(cat.id, cat.name)}
-                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Excluir"
-                        >
-                          <img
-                            src={deleteIcon}
-                            className="w-4 h-4"
-                            alt="excluir"
-                          />
-                        </button>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {categories.map((category) => {
+              const colorClass = getColorClass(category.color);
+
+              const iconBgColor = getIconBgColor(
+                category.color,
+              );
+
+              const iconImage = getIconByKey(category.icon);
+
+              const isDeleting =
+                deletingCategoryId === category.id;
+
+              return (
+                <article
+                  key={category.id}
+                  className="
+                    flex
+                    min-h-43.75
+                    flex-col
+                    justify-between
+                    rounded-xl
+                    border
+                    border-[#E5E7EB]
+                    bg-white
+                    p-5
+                    transition-all
+                    duration-200
+                    hover:-translate-y-0.5
+                    hover:shadow-md
+                  "
+                >
+                  {/* CONTEÚDO SUPERIOR */}
+                  <div className="flex items-start gap-4">
+                    {/* ÍCONE */}
+                    <div
+                      className={`
+                        flex
+                        h-12
+                        w-12
+                        shrink-0
+                        items-center
+                        justify-center
+                        rounded-xl
+                        ${iconBgColor}
+                      `}
+                    >
+                      <img
+                        src={iconImage}
+                        alt=""
+                        aria-hidden="true"
+                        className="h-7 w-7 object-contain"
+                      />
+                    </div>
+
+                    {/* INFORMAÇÕES */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <h2
+                            className="truncate text-base font-semibold text-gray-800"
+                            title={category.name}
+                          >
+                            {category.name}
+                          </h2>
+
+                          {category.description && (
+                            <p
+                              className="mt-1 line-clamp-2 text-sm leading-5 text-gray-500"
+                              title={category.description}
+                            >
+                              {category.description}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* BOTÕES */}
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingCategory(category)
+                            }
+                            disabled={isDeleting}
+                            className="
+                              flex
+                              h-8
+                              w-8
+                              items-center
+                              justify-center
+                              rounded-lg
+                              transition-colors
+                              hover:bg-gray-100
+                              focus:outline-none
+                              focus:ring-2
+                              focus:ring-gray-300
+                              disabled:cursor-not-allowed
+                              disabled:opacity-50
+                            "
+                            title={`Editar ${category.name}`}
+                            aria-label={`Editar categoria ${category.name}`}
+                          >
+                            <img
+                              src={editIcon}
+                              alt=""
+                              aria-hidden="true"
+                              className="h-4 w-4 object-contain"
+                            />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void handleDelete(
+                                category.id,
+                                category.name,
+                              )
+                            }
+                            disabled={isDeleting}
+                            className="
+                              flex
+                              h-8
+                              w-8
+                              items-center
+                              justify-center
+                              rounded-lg
+                              transition-colors
+                              hover:bg-red-50
+                              focus:outline-none
+                              focus:ring-2
+                              focus:ring-red-200
+                              disabled:cursor-not-allowed
+                              disabled:opacity-50
+                            "
+                            title={`Excluir ${category.name}`}
+                            aria-label={`Excluir categoria ${category.name}`}
+                          >
+                            {isDeleting ? (
+                              <span
+                                className="
+                                  h-4
+                                  w-4
+                                  animate-spin
+                                  rounded-full
+                                  border-2
+                                  border-gray-300
+                                  border-t-red-500
+                                "
+                              />
+                            ) : (
+                              <img
+                                src={deleteIcon}
+                                alt=""
+                                aria-hidden="true"
+                                className="h-4 w-4 object-contain"
+                              />
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    {cat.description && (
-                      <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">
-                        {cat.description}
-                      </p>
-                    )}
                   </div>
-                </div>
 
-                <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                  <span
-                    className={`text-xs px-2 sm:px-3 py-1 rounded-full ${colorClass}`}
-                  >
-                    {cat.name}
-                  </span>
-                  <span className="text-xs sm:text-sm font-medium text-gray-700">
-                    {cat.count} {cat.count === 1 ? "item" : "itens"}
-                  </span>
-                </div>
-              </div>
-            );
-          })
+                  {/* RODAPÉ */}
+                  <footer className="mt-5 flex items-center justify-between gap-4 border-t border-gray-100 pt-4">
+                    <span
+                      className={`
+                        inline-flex
+                        max-w-[70%]
+                        items-center
+                        truncate
+                        whitespace-nowrap
+                        rounded-full
+                        border
+                        px-3
+                        py-1.5
+                        text-xs
+                        font-medium
+                        leading-none
+                        ${colorClass}
+                      `}
+                      title={category.name}
+                    >
+                      {category.name}
+                    </span>
+
+                    <span className="shrink-0 whitespace-nowrap text-sm font-medium text-gray-700">
+                      {category.count}{" "}
+                      {category.count === 1
+                        ? "item"
+                        : "itens"}
+                    </span>
+                  </footer>
+                </article>
+              );
+            })}
+          </div>
         )}
-      </div>
+      </section>
 
-      {/* MODAL NOVA CATEGORIA */}
+      {/* MODAL DE NOVA CATEGORIA */}
       {isModalOpen && (
         <NewCategoryModal
           onClose={() => setIsModalOpen(false)}
           onSuccess={() => {
-            fetchCategories();
+            setIsModalOpen(false);
+            void fetchCategories();
           }}
         />
       )}
 
-      {/* MODAL EDITAR CATEGORIA */}
+      {/* MODAL DE EDIÇÃO */}
       {editingCategory && (
         <EditCategoryModal
           category={editingCategory}
           onClose={() => setEditingCategory(null)}
           onSuccess={() => {
-            fetchCategories();
+            setEditingCategory(null);
+            void fetchCategories();
           }}
         />
       )}
-    </div>
+    </main>
   );
 };
 

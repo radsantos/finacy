@@ -127,7 +127,7 @@ const DashboardPage = () => {
               SALDO TOTAL
             </p>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 break-words">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 wrap-break-word">
             R$ {formatCurrency(dashboard?.balance)}
           </h2>
         </div>
@@ -144,7 +144,7 @@ const DashboardPage = () => {
               RECEITAS DO MÊS
             </p>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-green-600 break-words">
+          <h2 className="text-xl sm:text-2xl font-bold text-green-600 wrap-break-word">
             R$ {formatCurrency(monthlyIncome)}
           </h2>
         </div>
@@ -161,7 +161,7 @@ const DashboardPage = () => {
               DESPESAS DO MÊS
             </p>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-red-600 break-words">
+          <h2 className="text-xl sm:text-2xl font-bold text-red-600 wrap-break-word">
             R$ {formatCurrency(monthlyExpense)}
           </h2>
         </div>
@@ -203,7 +203,7 @@ const DashboardPage = () => {
                   >
                     <div className="flex items-center gap-3 w-full sm:w-auto">
                       <div
-                        className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBgColor}`}
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${iconBgColor}`}
                       >
                         <img
                           src={getIconByKey(item.category?.icon || "")}
@@ -222,7 +222,7 @@ const DashboardPage = () => {
                     </div>
                     <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
                       <span
-                        className={`text-xs px-2 py-1 rounded-full truncate max-w-[100px] ${colorClass}`}
+                        className={`text-xs px-2 py-1 rounded-full truncate max-w-25 ${colorClass}`}
                       >
                         {item.category?.name || "Sem categoria"}
                       </span>
@@ -234,7 +234,7 @@ const DashboardPage = () => {
                       </span>
                       <img
                         src={item.type === "INCOME" ? receitas : despesas}
-                        className="w-4 h-4 opacity-60 flex-shrink-0"
+                        className="w-4 h-4 opacity-60 shrink-0"
                         alt={item.type === "INCOME" ? "receita" : "despesa"}
                       />
                     </div>
