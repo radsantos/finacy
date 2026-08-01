@@ -4,27 +4,68 @@ const categoryService = new CategoryService();
 
 export const categoryResolvers = {
   Query: {
-    categories: async (_: any, __: any, context: any) => {
-      if (!context.userId) throw new Error("Not authenticated");
-      return await categoryService.getCategories(context.userId);
+    categories: async (
+      _: unknown,
+      __: unknown,
+      context: { userId: string },
+    ) => {
+      return categoryService.getCategories(context.userId);
     },
-    category: async (_: any, { id }: any, context: any) => {
-      if (!context.userId) throw new Error("Not authenticated");
-      return await categoryService.getCategoryById(context.userId, id);
+
+    category: async (
+      _: unknown,
+      { id }: { id: string },
+      context: { userId: string },
+    ) => {
+      return categoryService.getCategoryById(context.userId, id);
     },
   },
+
   Mutation: {
-    createCategory: async (_: any, { input }: any, context: any) => {
-      if (!context.userId) throw new Error("Not authenticated");
-      return await categoryService.createCategory(context.userId, input);
+    createCategory: async (
+      _: unknown,
+      {
+        input,
+      }: {
+        input: {
+          name: string;
+          description?: string;
+          icon?: string;
+          color?: string;
+          type?: string;
+        };
+      },
+      context: { userId: string },
+    ) => {
+      return categoryService.createCategory(context.userId, input);
     },
-    updateCategory: async (_: any, { id, input }: any, context: any) => {
-      if (!context.userId) throw new Error("Not authenticated");
-      return await categoryService.updateCategory(context.userId, id, input);
+
+    updateCategory: async (
+      _: unknown,
+      {
+        id,
+        input,
+      }: {
+        id: string;
+        input: {
+          name?: string;
+          description?: string;
+          icon?: string;
+          color?: string;
+          type?: string;
+        };
+      },
+      context: { userId: string },
+    ) => {
+      return categoryService.updateCategory(context.userId, id, input);
     },
-    deleteCategory: async (_: any, { id }: any, context: any) => {
-      if (!context.userId) throw new Error("Not authenticated");
-      return await categoryService.deleteCategory(context.userId, id);
+
+    deleteCategory: async (
+      _: unknown,
+      { id }: { id: string },
+      context: { userId: string },
+    ) => {
+      return categoryService.deleteCategory(context.userId, id);
     },
   },
 };
